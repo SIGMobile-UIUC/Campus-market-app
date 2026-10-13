@@ -224,7 +224,8 @@ enable_signup = true
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
-enable_confirmations = false
+# On: a new user stays unconfirmed until the code is verified, and only then gets a profile (spec 4.6.1).
+enable_confirmations = true
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
@@ -243,6 +244,16 @@ otp_expiry = 3600
 # pass = "env(SENDGRID_API_KEY)"
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
+
+# The app signs in with a 6-digit code, not a link. New users get the confirmation email and
+# returning users the magic link email, so both carry the code.
+[auth.email.template.confirmation]
+subject = "Your Campus Market code"
+content_path = "./supabase/templates/code.html"
+
+[auth.email.template.magic_link]
+subject = "Your Campus Market code"
+content_path = "./supabase/templates/code.html"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]

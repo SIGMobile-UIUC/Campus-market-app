@@ -1,0 +1,72 @@
+-- Shared test helpers, included with \ir inside a test's transaction so they roll back with it.
+
+create schema tests;
+grant usage on schema tests to anon, authenticated;
+
+-- Inserts an auth user; a confirmed one gets a profile from the confirmation trigger.
+create function tests.create_user(p_email text, p_confirmed boolean default true) returns uuid
+language sql as $$
+  insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
+  values (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+          p_email, case when p_confirmed then now() end, '{}', '{}', now(), now())
+  returning id;
+$$;
+
+create function tests.login_as(p_user uuid) returns void
+language plpgsql as $$
+begin
+  perform set_config('request.jwt.claims', json_build_object('sub', p_user, 'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+end;
+$$;
+
+create function tests.login_anon() returns void
+language plpgsql as $$
+begin
+  perform set_config('request.jwt.claims', '{"role":"anon"}', true);
+  perform set_config('role', 'anon', true);
+end;
+$$;
+
+-- The RLS matrix (spec 4.23): two students at one live campus, one at another live campus, a student
+-- at a waitlist school, a general user, and a suspended and a banned student at the first campus.
+create table tests.matrix (name text primary key, id uuid not null);
+grant select on tests.matrix to anon, authenticated;
+
+create function tests.user_id(p_name text) returns uuid
+language sql stable as $$
+  select id from tests.matrix where name = p_name;
+$$;
+
+create function tests.build_matrix() returns void
+language plpgsql as $$
+declare
+  v_alpha uuid;
+  v_beta  uuid;
+  v_gamma uuid;
+begin
+  insert into public.campuses (slug, name, status, timezone, lat, lng, primary_color, accent_color)
+  values ('alpha', 'Alpha University', 'live', 'America/Chicago', 40, -88, '#111111', '#EEEEEE') returning id into v_alpha;
+  insert into public.campuses (slug, name, status, timezone, lat, lng, primary_color, accent_color)
+  values ('beta', 'Beta University', 'live', 'America/Chicago', 41, -87, '#222222', '#DDDDDD') returning id into v_beta;
+  insert into public.campuses (slug, name, status, timezone, lat, lng)
+  values ('gamma', 'Gamma University', 'waitlist', 'America/Detroit', 42, -83) returning id into v_gamma;
+  insert into public.campus_domains (domain, campus_id, include_subdomains)
+  values ('alpha.edu', v_alpha, true), ('beta.edu', v_beta, false), ('gamma.edu', v_gamma, false);
+  insert into public.zip_codes (zip, city, state, lat, lng) values ('61820', 'Champaign', 'IL', 40.11, -88.24);
+
+  insert into tests.matrix (name, id) values
+    ('alpha1',    tests.create_user('alpha1@alpha.edu')),
+    ('alpha2',    tests.create_user('alpha2@cs.alpha.edu')),
+    ('beta1',     tests.create_user('beta1@beta.edu')),
+    ('gamma1',    tests.create_user('gamma1@gamma.edu')),
+    ('general1',  tests.create_user('general1@example.com')),
+    ('suspended', tests.create_user('suspended@alpha.edu')),
+    ('banned',    tests.create_user('banned@alpha.edu'));
+
+  update public.profiles p set display_name = m.name from tests.matrix m where p.id = m.id;
+  update public.profiles set zip = '61820' where id = tests.user_id('general1');
+  update public.profiles set status = 'suspended' where id = tests.user_id('suspended');
+  update public.profiles set status = 'banned' where id = tests.user_id('banned');
+end;
+$$;

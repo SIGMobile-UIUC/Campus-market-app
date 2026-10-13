@@ -12,7 +12,7 @@ The proposal's done-when is the bar: a student signs up, lists an item, agrees o
 
 | Tier | What | Rule |
 | --- | --- | --- |
-| Demo-critical | Sign-in and campus assignment, onboarding, listings with photos, move-out sales (bundles, multi-item trades), wanted requests and offers, Home with all modules, Categories, results, search, listing page, favorites, chat, trade proposal, accept, complete, cancel, reviews, rank, points, Me tab, campus separation tests | Nothing ships to the demo without these |
+| Demo-critical | Sign-in and campus assignment, onboarding, listings with photos, move-out sales (bundles, multi-item trades), wanted requests and offers, Home with all modules, Categories, results, search, listing page, favorites, chat, trade proposal, accept, complete, cancel, reviews, grade, points, Me tab, campus separation tests | Nothing ships to the demo without these |
 | P0, after the critical path | Reports, blocks, auto-hide, admin queue, no-show disputes, shop and avatar, check-in, consent and event logging, account deletion, photo purge | Built in weeks 7 to 9; any that slip move to P1 with a note in the spec, in this order: shop and avatar editor, photo purge, event logging, account deletion |
 
 ## 2. Repository and tooling
@@ -72,15 +72,15 @@ Done when: a fresh clone runs the app in under 15 minutes by following the READM
 
 ### M1 · Identity and campuses (weeks 2 to 3, Oct 12 to 25)
 
-| ID | Task | Area |
-| --- | --- | --- |
-| DB-1 | Types, `campuses`, `campus_domains`, `campus_zones`, `meetup_spots`, `zip_codes` (Illinois subset for the demo), `app_config` | Backend |
-| DB-2 | `profiles`, `private.accounts`, `user_roles`, `user_settings`, `consents`; profile creation on email confirmation | Backend |
-| DB-3 | Before User Created hook: plus addresses, disposable domains, tombstones; Resend as the auth SMTP on staging | Backend |
-| DB-4 | RLS on every table, function security lint, pgTAP harness with the RLS matrix users (same campus, other campus, waitlist, general, suspended, banned) | Backend |
-| DB-5 | Seed: two live campuses (Illinois, Purdue) and one waitlist campus (Michigan), categories from spec 1.7.5, rule values | Backend |
-| APP-3 | Onboarding: email, 6-digit code, campus reveal, ZIP for general users, nickname and avatar, rules and consent; session in SecureStore | App |
-| APP-4 | Home header with campus name and market toggle; theme switches with the campus | App |
+| ID | Task | Area | Status |
+| --- | --- | --- | --- |
+| DB-1 | Types, `campuses`, `campus_domains`, `campus_zones`, `meetup_spots`, `zip_codes` (Illinois subset for the demo), `app_config` | Backend | Done |
+| DB-2 | `profiles`, `private.accounts`, `user_roles`, `user_settings`, `consents`; profile creation on email confirmation; `get_my_account`, `complete_onboarding` | Backend | Done; starter avatar joins with DB-12 |
+| DB-3 | Before User Created hook: plus addresses, disposable domains, tombstones; Resend as the auth SMTP on staging | Backend | |
+| DB-4 | RLS on every table, function security lint, pgTAP harness with the RLS matrix users (same campus, other campus, waitlist, general, suspended, banned) | Backend | Done; CI runs lint and pgTAP |
+| DB-5 | Seed: two live campuses (Illinois, Purdue) and one waitlist campus (Michigan), categories from spec 1.7.5, rule values | Backend | Campuses and domains seeded; zones, spots, ZIP codes, categories next |
+| APP-3 | Onboarding: email, 6-digit code, campus reveal, ZIP for general users, nickname and avatar, rules and consent; session in SecureStore | App | Code email template ready |
+| APP-4 | Home header with campus name and market toggle; theme switches with the campus | App | |
 
 Done when: a UIUC email lands in the Illinois market with Illinois colors, a Gmail address lands in the open market, and the pgTAP suite passes in CI.
 

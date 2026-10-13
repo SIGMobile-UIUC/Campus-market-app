@@ -1,0 +1,59 @@
+-- Profile creation on confirmation and complete_onboarding (spec 4.6.1, 6.3).
+begin;
+\ir _helpers.psql
+select plan(23);
+select tests.build_matrix();
+
+-- Campus assignment by email domain.
+create function tests.signup_campus(p_email text) returns text
+language plpgsql as $$
+declare
+  v_id uuid := tests.create_user(p_email);
+begin
+  return (select c.slug from public.profiles p left join public.campuses c on c.id = p.campus_id where p.id = v_id);
+end;
+$$;
+
+select is(tests.signup_campus('a@alpha.edu'), 'alpha', 'exact domain maps to the campus');
+select is(tests.signup_campus('b@mail.cs.alpha.edu'), 'alpha', 'subdomain maps when the domain includes subdomains');
+select is(tests.signup_campus('c@cs.beta.edu'), null, 'subdomain does not map when the domain excludes them');
+select is(tests.signup_campus('d@fakealpha.edu'), null, 'a look-alike suffix does not map');
+select is(tests.signup_campus('e@alpha.edu.evil.com'), null, 'a domain that only starts with the campus domain does not map');
+select is(tests.signup_campus('F@GAMMA.EDU'), 'gamma', 'matching ignores case; waitlist schools still assign the campus');
+
+-- Confirmation creates the rows; requesting a code alone does not.
+create temp table pending as select tests.create_user('pending@alpha.edu', false) as id;
+select is((select count(*)::int from public.profiles where id = (select id from pending)), 0, 'no profile before the email is confirmed');
+update auth.users set email_confirmed_at = now() where id = (select id from pending);
+select is((select count(*)::int from public.profiles where id = (select id from pending)), 1, 'profile created on confirmation');
+select is((select email from private.accounts where user_id = (select id from pending)), 'pending@alpha.edu', 'account row holds the email');
+select is((select count(*)::int from public.user_settings where user_id = (select id from pending)), 1, 'settings row created');
+grant select on pending to authenticated;
+
+-- complete_onboarding.
+select tests.login_as((select id from pending));
+select throws_ok($$ select public.complete_onboarding('no', 'v1', true, false) $$, 'P0001', 'VALIDATION_FAILED', 'nickname too short');
+select throws_ok($$ select public.complete_onboarding('has space', 'v1', true, false) $$, 'P0001', 'VALIDATION_FAILED', 'nickname with a space');
+select throws_ok($$ select public.complete_onboarding('ALPHA1', 'v1', true, false) $$, 'P0001', 'ALREADY_EXISTS', 'nickname taken, ignoring case');
+select throws_ok($$ select public.complete_onboarding('deleted_ab12', 'v1', true, false) $$, 'P0001', 'PROHIBITED_CONTENT', 'reserved deleted_ prefix');
+select throws_ok($$ select public.complete_onboarding('maple_23', '', true, false) $$, 'P0001', 'VALIDATION_FAILED', 'terms must be accepted');
+select throws_ok($$ select public.complete_onboarding('maple_23', 'v1', true, false, null, 'Mars/Olympus') $$, 'P0001', 'VALIDATION_FAILED', 'unknown time zone');
+select is((public.complete_onboarding('maple_23', 'v1', true, false, '61820'))->>'zip', null, 'students onboard without a ZIP code');
+select throws_ok($$ select public.complete_onboarding('maple_24', 'v1', true, false) $$, 'P0001', 'INVALID_STATE', 'onboarding runs once');
+select is((public.get_my_account())->'campus'->>'slug', 'alpha', 'get_my_account returns the campus');
+
+reset role;
+create temp table general as select tests.create_user('someone@example.com') as id;
+grant select on general to authenticated;
+select tests.login_as((select id from general));
+select throws_ok($$ select public.complete_onboarding('someone', 'v1', false, false, '99999') $$, 'P0001', 'ZIP_REQUIRED', 'general users need a known ZIP code');
+
+select tests.login_as(tests.user_id('suspended'));
+select lives_ok($$ select public.get_my_account() $$, 'suspended users can read their account');
+select throws_ok($$ select public.complete_onboarding('other', 'v1', true, false) $$, 'P0001', 'ACCOUNT_SUSPENDED', 'suspended users cannot write');
+
+select tests.login_as(gen_random_uuid());
+select throws_ok($$ select public.get_my_account() $$, 'P0001', 'AUTH_REQUIRED', 'a session without a profile is rejected');
+
+select * from finish();
+rollback;

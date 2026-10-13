@@ -1131,7 +1131,8 @@ sequenceDiagram
 - **Disposable domains:** the hook rejects domains on a disposable-email blocklist kept in `app_config`. Any other email is accepted.
 - **Campus matching:** a student's email domain must equal a listed domain, or end with `.` plus a listed domain that has `include_subdomains`. A plain suffix check would accept `fakeillinois.edu`. Matching decides the campus, not whether sign-up is allowed.
 - **Tombstones:** the hook computes `HMAC-SHA256(lower(email), secret)` and rejects it when `private.identity_tombstones` holds an unexpired row. The secret lives in Supabase Vault, so a database dump alone cannot reverse emails from the hashes.
-- **Campus assignment:** the confirmation trigger sets `profiles.campus_id` to the matched campus, `live` or `waitlist`, or leaves it null for a general user.
+- **Campus assignment:** the confirmation trigger sets `profiles.campus_id` to the matched campus, `live` or `waitlist`, or leaves it null for a general user. The nickname stays null until `complete_onboarding`, and other users do not see a profile before then.
+- **Confirm email stays on** (local `enable_confirmations = true`, the hosted default), so a new user is unconfirmed until the code is verified.
 
 #### 4.6.2 Sessions and graduation
 
@@ -1886,6 +1887,9 @@ Conventions: `uuid` primary keys from `gen_random_uuid()`; `timestamptz` everywh
 ```sql
 create schema if not exists private;
 revoke all on schema private from public, anon, authenticated;
+grant usage on schema private to authenticated;   -- policies call private helpers; no table grants
+-- Supabase grants execute on new functions to anon and authenticated, so each migration that adds
+-- private functions revokes it and grants back only the helpers policies need.
 create extension if not exists pg_trgm;
 
 create type public.campus_status   as enum ('live', 'waitlist');
@@ -1975,18 +1979,18 @@ create table public.profiles (
   campus_id               uuid references public.campuses,           -- null for general users
   zip                     text references public.zip_codes,          -- default area of general users
   timezone                text not null default 'America/Chicago',   -- IANA name from the device
-  display_name            text not null unique check (display_name ~ '^[A-Za-z0-9_.]{3,20}$'),
+  display_name            text check (display_name ~ '^[A-Za-z0-9_.]{3,20}$'),  -- null until onboarding
   display_name_changed_at timestamptz,
   tier                    public.tier not null default 'b',       -- trust grade, cache of rank_stats.tier
   status                  public.account_status not null default 'active',
   suspended_until         timestamptz,
   created_at              timestamptz not null default now()
 );
+create unique index profiles_display_name_key on public.profiles (lower(display_name));  -- unique ignoring case
 
 create table private.accounts (
   user_id               uuid primary key references public.profiles on delete cascade,
-  email                 text not null unique,
-  email_hmac            bytea not null unique,   -- HMAC-SHA256(lower(email), server secret)
+  email                 text not null unique,    -- tombstones hash it when written, so no HMAC column
   secondary_email       text,
   secondary_verified_at timestamptz,
   analytics_id          uuid not null unique default gen_random_uuid(),
@@ -2726,8 +2730,8 @@ PostgREST returns HTTP 400 with `{ "code": "P0001", "message": "ITEM_UNAVAILABLE
 
 | Function | Params | Returns | Errors |
 | --- | --- | --- | --- |
-| `get_my_account()` | none | `{ email, secondary_email, secondary_verified, campus, status, created_at }` | `AUTH_REQUIRED` |
-| `complete_onboarding(display_name, starter_avatar, accept_terms_version, analytics, personalized_ads, zip, timezone)` | text, text, text, bool, bool, text (general users), text | profile | `VALIDATION_FAILED`, `ALREADY_EXISTS` (nickname taken), `PROHIBITED_CONTENT`, `ZIP_REQUIRED` |
+| `get_my_account()` | none | `{ email, secondary_email, secondary_verified, campus, status, onboarded, created_at }`; works for suspended users | `AUTH_REQUIRED` |
+| `complete_onboarding(display_name, starter_avatar, accept_terms_version, analytics, personalized_ads, zip, timezone)` | text, text, text, bool, bool, text (general users), text | profile | `VALIDATION_FAILED`, `ALREADY_EXISTS` (nickname taken, ignoring case), `PROHIBITED_CONTENT` (including the reserved `deleted_` prefix), `ZIP_REQUIRED`, `INVALID_STATE` (already onboarded) |
 | `change_display_name(display_name, request_id)` | text, uuid | `{ display_name, points_spent, balance }` | `COOLDOWN_ACTIVE`, `INSUFFICIENT_POINTS`, `ALREADY_EXISTS`, `PROHIBITED_CONTENT` |
 | `set_consent(analytics, personalized_ads, policy_version)` | bool, bool, text | consent | `VALIDATION_FAILED` |
 | `update_settings(settings)` | jsonb (`lock_screen_preview`, `push_prefs`) | settings | `VALIDATION_FAILED` |

@@ -22,3 +22,15 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run format:check
+
+  db:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.120.0
+      # Postgres only: migrations and seed apply, then pgTAP runs against them.
+      - run: supabase db start
+      - run: supabase db lint --level warning --fail-on error
+      - run: supabase test db

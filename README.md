@@ -41,11 +41,15 @@ npm run format:check
 
 ## Local backend
 
-From M1 the app talks to a local Supabase stack:
+From M1 the app talks to a local Supabase stack. Start Docker Desktop first; the first start downloads a few GB of images.
 
 ```bash
 npx supabase start
 ```
+
+- Sign-in emails land in Mailpit at http://127.0.0.1:54324, so any address works locally.
+- `npx supabase db reset` reapplies migrations and `supabase/seed.sql`.
+- Database tests (pgTAP, in `supabase/tests/database`) run in CI; run them locally with `npx supabase test db`.
 
 ## Contributing
 

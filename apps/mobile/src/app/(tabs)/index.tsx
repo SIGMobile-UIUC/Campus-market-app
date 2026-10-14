@@ -12,7 +12,7 @@ import { useTheme } from "@/ui/theme";
 export default function Home() {
   const { campus, market, setMarket, colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const inCampus = market === "campus";
+  const inCampus = !!campus && market === "campus";
 
   return (
     <ScrollView
@@ -39,16 +39,18 @@ export default function Home() {
         </Pressable>
       </View>
 
-      <View className="flex-row gap-1.5 px-5 pb-3">
-        <Chip label={`${campus.short} only`} selected={inCampus} onPress={() => setMarket("campus")} />
-        <Chip label="Open market" selected={!inCampus} onPress={() => setMarket("open")} />
-      </View>
+      {campus ? (
+        <View className="flex-row gap-1.5 px-5 pb-3">
+          <Chip label={`${campus.name} only`} selected={inCampus} onPress={() => setMarket("campus")} />
+          <Chip label="Open market" selected={!inCampus} onPress={() => setMarket("open")} />
+        </View>
+      ) : null}
 
       <View className="mx-5 mb-4 h-12 flex-row items-center gap-2.5 rounded-xl bg-surface px-3.5">
         <Search size={20} color={colors.muted} />
         <TextInput
           accessibilityLabel="Search"
-          placeholder={inCampus ? `Search ${campus.short} market` : "Search the open market"}
+          placeholder={inCampus ? `Search ${campus.name} market` : "Search the open market"}
           placeholderTextColor={colors.muted}
           className="flex-1 text-[15px] text-ink"
         />

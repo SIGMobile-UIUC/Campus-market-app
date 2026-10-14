@@ -18,13 +18,15 @@ docs/          Specification and implementation plan
 
 ## Run the app
 
+Start the local backend first (see [Local backend](#local-backend)), then copy `apps/mobile/.env.example` to `apps/mobile/.env.local` and fill in the key from `npx supabase status`.
+
 ```bash
 cd apps/mobile
 npm ci
 npx expo start
 ```
 
-Press `a` for Android, or scan the QR code with your phone.
+Press `a` for Android, or scan the QR code with your phone. Sign in with any email; the code arrives in Mailpit.
 
 ## Checks
 
@@ -35,6 +37,7 @@ cd apps/mobile
 npm run lint
 npm run typecheck
 npm run format:check
+npm test
 ```
 
 `npm run format` fixes formatting.

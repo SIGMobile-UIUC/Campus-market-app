@@ -1,7 +1,7 @@
 -- Profile creation on confirmation and complete_onboarding (spec 4.6.1, 6.3).
 begin;
 \ir _helpers.psql
-select plan(23);
+select plan(27);
 select tests.build_matrix();
 
 -- Campus assignment by email domain.
@@ -32,25 +32,36 @@ grant select on pending to authenticated;
 
 -- complete_onboarding.
 select tests.login_as((select id from pending));
-select throws_ok($$ select public.complete_onboarding('no', 'v1', true, false) $$, 'P0001', 'VALIDATION_FAILED', 'nickname too short');
-select throws_ok($$ select public.complete_onboarding('has space', 'v1', true, false) $$, 'P0001', 'VALIDATION_FAILED', 'nickname with a space');
-select throws_ok($$ select public.complete_onboarding('ALPHA1', 'v1', true, false) $$, 'P0001', 'ALREADY_EXISTS', 'nickname taken, ignoring case');
-select throws_ok($$ select public.complete_onboarding('deleted_ab12', 'v1', true, false) $$, 'P0001', 'PROHIBITED_CONTENT', 'reserved deleted_ prefix');
-select throws_ok($$ select public.complete_onboarding('maple_23', '', true, false) $$, 'P0001', 'VALIDATION_FAILED', 'terms must be accepted');
-select throws_ok($$ select public.complete_onboarding('maple_23', 'v1', true, false, null, 'Mars/Olympus') $$, 'P0001', 'VALIDATION_FAILED', 'unknown time zone');
-select is((public.complete_onboarding('maple_23', 'v1', true, false, '61820'))->>'zip', null, 'students onboard without a ZIP code');
-select throws_ok($$ select public.complete_onboarding('maple_24', 'v1', true, false) $$, 'P0001', 'INVALID_STATE', 'onboarding runs once');
+select throws_ok($$ select public.complete_onboarding('no', 'starter_1', 'v1', true, false) $$, 'P0001', 'VALIDATION_FAILED', 'nickname too short');
+select throws_ok($$ select public.complete_onboarding('has space', 'starter_1', 'v1', true, false) $$, 'P0001', 'VALIDATION_FAILED', 'nickname with a space');
+select throws_ok($$ select public.complete_onboarding('ALPHA1', 'starter_1', 'v1', true, false) $$, 'P0001', 'ALREADY_EXISTS', 'nickname taken, ignoring case');
+select throws_ok($$ select public.complete_onboarding('deleted_ab12', 'starter_1', 'v1', true, false) $$, 'P0001', 'PROHIBITED_CONTENT', 'reserved deleted_ prefix');
+select throws_ok($$ select public.complete_onboarding('t_maple_23', 'starter_1', '', true, false) $$, 'P0001', 'VALIDATION_FAILED', 'terms must be accepted');
+select throws_ok($$ select public.complete_onboarding('t_maple_23', 'starter_1', 'v1', true, false, null, 'Mars/Olympus') $$, 'P0001', 'VALIDATION_FAILED', 'unknown time zone');
+select throws_ok($$ select public.complete_onboarding('t_maple_23', 'starter_99', 'v1', true, false) $$, 'P0001', 'VALIDATION_FAILED', 'unknown starter avatar');
+select is((public.complete_onboarding('t_maple_23', 'starter_1', 'v1', true, false, '61820'))->>'zip', null, 'students onboard without a ZIP code');
+select throws_ok($$ select public.complete_onboarding('t_maple_24', 'starter_1', 'v1', true, false) $$, 'P0001', 'INVALID_STATE', 'onboarding runs once');
 select is((public.get_my_account())->'campus'->>'slug', 'alpha', 'get_my_account returns the campus');
+select is(
+  (public.get_my_account())->'avatar',
+  '{"background": "bg_sky", "top": "top_hoodie_navy", "face": "face_smile", "head": "head_beanie"}'::jsonb,
+  'the starter look is equipped and returned by get_my_account'
+);
+select is((select count(*)::int from public.inventory where user_id = (select id from pending)), 4, 'the starter items are owned');
+select throws_ok(
+  $$ insert into public.avatar_loadout (user_id, slot, item_id) select (select id from pending), 'frame', id from public.shop_items limit 1 $$,
+  '42501', null, 'users cannot equip items directly'
+);
 
 reset role;
 create temp table general as select tests.create_user('someone@example.com') as id;
 grant select on general to authenticated;
 select tests.login_as((select id from general));
-select throws_ok($$ select public.complete_onboarding('someone', 'v1', false, false, '99999') $$, 'P0001', 'ZIP_REQUIRED', 'general users need a known ZIP code');
+select throws_ok($$ select public.complete_onboarding('t_someone', 'starter_1', 'v1', false, false, '99999') $$, 'P0001', 'ZIP_REQUIRED', 'general users need a known ZIP code');
 
 select tests.login_as(tests.user_id('suspended'));
 select lives_ok($$ select public.get_my_account() $$, 'suspended users can read their account');
-select throws_ok($$ select public.complete_onboarding('other', 'v1', true, false) $$, 'P0001', 'ACCOUNT_SUSPENDED', 'suspended users cannot write');
+select throws_ok($$ select public.complete_onboarding('t_other', 'starter_1', 'v1', true, false) $$, 'P0001', 'ACCOUNT_SUSPENDED', 'suspended users cannot write');
 
 select tests.login_as(gen_random_uuid());
 select throws_ok($$ select public.get_my_account() $$, 'P0001', 'AUTH_REQUIRED', 'a session without a profile is rejected');

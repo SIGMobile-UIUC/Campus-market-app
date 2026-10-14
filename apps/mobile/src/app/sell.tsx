@@ -49,7 +49,7 @@ export default function SellType() {
         </Pressable>
       ))}
       <Text className="pt-2 text-[13px] text-muted">
-        {market === "campus"
+        {campus && market === "campus"
           ? `Posting to the ${campus.name} campus market. You can also show it in the open market.`
           : "Posting to the open market."}
       </Text>

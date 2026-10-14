@@ -4,7 +4,6 @@ import { vars } from "nativewind";
 
 export type Campus = {
   name: string;
-  short: string;
   primary: string;
   onPrimary: string;
   accent: string;
@@ -22,12 +21,27 @@ const OPEN_MARKET_COLORS = {
 };
 
 const NEUTRALS = {
-  light: { bg: "#FFFFFF", surface: "#F1F2F4", ink: "#17181A", muted: "#5E6168", line: "#E7E8EB" },
-  dark: { bg: "#0F0F10", surface: "#1B1B1E", ink: "#F2F2F2", muted: "#A6A6AB", line: "#2A2A2D" },
+  light: {
+    bg: "#FFFFFF",
+    surface: "#F1F2F4",
+    ink: "#17181A",
+    muted: "#5E6168",
+    line: "#E7E8EB",
+    danger: "#B42318",
+  },
+  dark: {
+    bg: "#0F0F10",
+    surface: "#1B1B1E",
+    ink: "#F2F2F2",
+    muted: "#A6A6AB",
+    line: "#2A2A2D",
+    danger: "#F97066",
+  },
 };
 
 type Theme = {
-  campus: Campus;
+  // Null for general users and students whose school has no live market: they see the open market only.
+  campus: Campus | null;
   market: Market;
   setMarket: (market: Market) => void;
   // Resolved colors for places that need a value rather than a class name, such as icons.
@@ -42,13 +56,14 @@ export function useTheme() {
   return theme;
 }
 
-export function ThemeProvider({ campus, children }: { campus: Campus; children: ReactNode }) {
+export function ThemeProvider({ campus, children }: { campus: Campus | null; children: ReactNode }) {
   const scheme = useColorScheme();
-  const [market, setMarket] = useState<Market>("campus");
+  const [selected, setMarket] = useState<Market>("campus");
+  const market = campus ? selected : "open";
 
   const theme = useMemo<Theme>(() => {
     const neutrals = NEUTRALS[scheme === "dark" ? "dark" : "light"];
-    const brand = market === "campus" ? campus : OPEN_MARKET_COLORS;
+    const brand = campus && market === "campus" ? campus : OPEN_MARKET_COLORS;
     return {
       campus,
       market,
@@ -74,6 +89,7 @@ export function ThemeProvider({ campus, children }: { campus: Campus; children: 
           "--color-ink": colors.ink,
           "--color-muted": colors.muted,
           "--color-line": colors.line,
+          "--color-danger": colors.danger,
           "--color-primary": colors.primary,
           "--color-on-primary": colors.onPrimary,
           "--color-accent": colors.accent,

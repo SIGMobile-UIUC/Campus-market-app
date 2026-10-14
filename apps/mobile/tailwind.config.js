@@ -11,6 +11,7 @@ module.exports = {
         ink: "var(--color-ink)",
         muted: "var(--color-muted)",
         line: "var(--color-line)",
+        danger: "var(--color-danger)",
         primary: "var(--color-primary)",
         "on-primary": "var(--color-on-primary)",
         accent: "var(--color-accent)",

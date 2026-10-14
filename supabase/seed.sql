@@ -4,10 +4,10 @@
 -- Tombstone HMAC key. Staging and production set their own random key in Vault.
 select vault.create_secret('local-development-only', 'email_hmac_key');
 
-insert into public.campuses (slug, name, status, timezone, lat, lng, primary_color, accent_color) values
-  ('illinois', 'University of Illinois Urbana-Champaign', 'live',     'America/Chicago',              40.1020, -88.2272, '#13294B', '#FF5F05'),
-  ('purdue',   'Purdue University',                       'live',     'America/Indiana/Indianapolis', 40.4237, -86.9212, '#000000', '#CFB991'),
-  ('michigan', 'University of Michigan',                  'waitlist', 'America/Detroit',              42.2780, -83.7382, '#00274C', '#FFCB05');
+insert into public.campuses (slug, name, short_name, status, timezone, lat, lng, primary_color, accent_color) values
+  ('illinois', 'University of Illinois Urbana-Champaign', 'UIUC',     'live',     'America/Chicago',              40.1020, -88.2272, '#13294B', '#FF5F05'),
+  ('purdue',   'Purdue University',                       'Purdue',   'live',     'America/Indiana/Indianapolis', 40.4237, -86.9212, '#000000', '#CFB991'),
+  ('michigan', 'University of Michigan',                  'Michigan', 'waitlist', 'America/Detroit',              42.2780, -83.7382, '#00274C', '#FFCB05');
 
 insert into public.campus_domains (domain, campus_id, include_subdomains)
 select d.domain, c.id, true

@@ -81,8 +81,8 @@ Done when: a fresh clone runs the app in under 15 minutes by following the READM
 | DB-3 | Before User Created hook: plus addresses, disposable domains, tombstones; Resend as the auth SMTP on staging | Backend | Hook done; Resend waits for the sending domain |
 | DB-4 | RLS on every table, function security lint, pgTAP harness with the RLS matrix users (same campus, other campus, waitlist, general, suspended, banned) | Backend | Done; CI runs lint and pgTAP |
 | DB-5 | Seed: two live campuses (Illinois, Purdue) and one waitlist campus (Michigan), categories from spec 1.7.5, rule values | Backend | Done; ZIP codes (all US), categories and rule values in migrations; zone and spot coordinates need a map check |
-| APP-3 | Onboarding: email, 6-digit code, campus reveal, ZIP for general users, nickname and avatar, rules and consent; session in SecureStore | App | Code email template ready |
-| APP-4 | Home header with campus name and market toggle; theme switches with the campus | App | |
+| APP-3 | Onboarding: email, 6-digit code, campus reveal, ZIP for general users, nickname and avatar, rules and consent; session in SecureStore | App | Done, including the starter avatar |
+| APP-4 | Home header with campus name and market toggle; theme switches with the campus | App | Done |
 
 Done when: a UIUC email lands in the Illinois market with Illinois colors, a Gmail address lands in the open market, and the pgTAP suite passes in CI.
 
@@ -124,7 +124,7 @@ Done when: two phones complete a trade end to end on staging, with push notifica
 | ID | Task | Area |
 | --- | --- | --- |
 | DB-11 | `reviews`, `penalties`, `rank_stats`; `rank-recompute` job reading `app_config.rank_rules` | Backend |
-| DB-12 | `wallets`, `points_ledger`, `award_points`, `purchases`, `inventory`, `avatar_loadout`, `checkins`; shop seed | Backend |
+| DB-12 | `wallets`, `points_ledger`, `award_points`, `purchases`, `inventory`, `avatar_loadout`, `checkins`; shop seed (`shop_items`, `inventory`, `avatar_loadout` and the starter items shipped with APP-3) | Backend |
 | DB-13 | `reports`, `blocks`, auto-hide trigger, `enforcement_actions`, `private.admin_log`; admin queue, resolve, enforce, set config | Backend |
 | DB-14 | No-show disputes: open, respond, evidence, admin decision; evidence bucket | Backend |
 | APP-12 | Me tab: grade card with progress, wallet and history, daily check-in, shop and avatar editor (SVG layers) | App |

@@ -22,6 +22,7 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run format:check
+      - run: npm test -- --ci
 
   db:
     runs-on: ubuntu-latest

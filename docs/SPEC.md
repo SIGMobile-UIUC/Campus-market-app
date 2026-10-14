@@ -729,7 +729,7 @@ flowchart TD
     Me --> Settings["Settings"]
 ```
 
-Expo Router groups: `(auth)` for onboarding, `(tabs)` for the five tabs (Home, Categories, Sell, Chats, Me), modal routes for sheets.
+Expo Router groups: `(auth)` for welcome, email and code (signed out), `(onboarding)` for campus reveal, profile and rules (signed in, not onboarded), `(tabs)` for the five tabs (Home, Categories, Sell, Chats, Me), modal routes for sheets. The root layout guards each group with `Stack.Protected`, so only one is reachable at a time.
 
 ### 3.3 Screen inventory
 
@@ -737,9 +737,9 @@ Expo Router groups: `(auth)` for onboarding, `(tabs)` for the five tabs (Home, C
 | --- | --- | --- | --- |
 | Onboarding | Welcome | Value line, Continue with email, a hint that a school email unlocks the campus market | P0 |
 | | Email and code | Email field (rejects `+` and disposable addresses with a hint), 6-digit code with auto-fill, resend timer | P0 |
-| | Campus reveal | Campus name and colors animate in; waitlist students see "Open market" and their school's waitlist count; general users see "Open market" and set their ZIP code | P0 |
-| | Profile setup | Nickname (live availability check), starter avatar | P0 |
-| | Rules and consent | Community rules, terms, analytics and personalized-ads switches | P0 |
+| | Campus reveal | Campus name and colors animate in; waitlist students see "Open market" and their school's waitlist count; general users see "Open market" and set their ZIP code; shows the signed-in email with "Use a different email" | P0 |
+| | Profile setup | Nickname (live availability check), starter avatar picked from six looks | P0 |
+| | Rules and consent | Community rules summary, link to the full Terms (`docs/TERMS.md`), terms acceptance, analytics and personalized-ads switches (both on by default, each can be turned off here or in Settings) | P0 |
 | Home | Home | Header with campus name and market toggle (hidden for waitlist students and general users), notification bell, search bar, shopping mode tiles, Picked for you, Shop by category grid, Move-out sales near you, Students are looking for, Hot this week grid (DSC-11, DSC-12) | P0 |
 | Browse | Categories | Category list on the left, subcategories with counts on the right, popular searches for the campus | P0 |
 | | Category results | Subcategory tabs, filter chips (market, price, condition, pickup zone, free only), result count, sort, "Alert me" (P2), two-column grid | P0 |
@@ -1461,6 +1461,7 @@ The internal dashboard shows points issued and spent per week by source and sink
 ### 4.14 Avatar, shop and pet
 
 - `avatar_loadout` holds one item per slot; `equip_item` checks ownership and slot.
+- Starter looks: `app_config.starter_avatars` lists the looks offered at onboarding by item sku. `complete_onboarding` grants the chosen look's items and equips them. Starter items have `active = false`, so the shop never sells them.
 - Grade-gated items check `profiles.tier` at purchase; a user who later drops below the grade keeps the item.
 - The app renders the avatar from bundled SVG layers by `asset_key`. Without a frame item, the frame color follows the trust grade.
 - Pet mood is computed on read from the last completed trade, the last check-in, `treat_until` and the trust grade; no job touches pets.
@@ -1926,6 +1927,7 @@ create table public.campuses (
   id            uuid primary key default gen_random_uuid(),
   slug          text not null unique,
   name          text not null,
+  short_name    text check (char_length(short_name) between 2 and 16),  -- headers and chips, e.g. UIUC
   status        public.campus_status not null default 'waitlist',
   timezone      text not null,                      -- IANA name, e.g. America/Chicago
   lat           double precision not null,
@@ -2357,7 +2359,7 @@ create table public.shop_items (
   available_from  timestamptz,
   available_until timestamptz,
   consumable      boolean not null default false,
-  active          boolean not null default true,
+  active          boolean not null default true,   -- false: not sold (starter items are granted)
   asset_key       text not null
 );
 
@@ -2731,8 +2733,8 @@ PostgREST returns HTTP 400 with `{ "code": "P0001", "message": "ITEM_UNAVAILABLE
 
 | Function | Params | Returns | Errors |
 | --- | --- | --- | --- |
-| `get_my_account()` | none | `{ email, secondary_email, secondary_verified, campus, status, onboarded, created_at }`; works for suspended users | `AUTH_REQUIRED` |
-| `complete_onboarding(display_name, starter_avatar, accept_terms_version, analytics, personalized_ads, zip, timezone)` | text, text, text, bool, bool, text (general users), text | profile | `VALIDATION_FAILED`, `ALREADY_EXISTS` (nickname taken, ignoring case), `PROHIBITED_CONTENT` (including the reserved `deleted_` prefix), `ZIP_REQUIRED`, `INVALID_STATE` (already onboarded) |
+| `get_my_account()` | none | `{ email, secondary_email, secondary_verified, campus, status, onboarded, avatar ({ slot: asset_key }), created_at }`; works for suspended users | `AUTH_REQUIRED` |
+| `complete_onboarding(display_name, starter_avatar, accept_terms_version, analytics, personalized_ads, zip, timezone)` | text, text (a look id from `app_config.starter_avatars`), text, bool, bool, text (general users), text | profile | `VALIDATION_FAILED` (including an unknown look), `ALREADY_EXISTS` (nickname taken, ignoring case), `PROHIBITED_CONTENT` (including the reserved `deleted_` prefix), `ZIP_REQUIRED`, `INVALID_STATE` (already onboarded) |
 | `change_display_name(display_name, request_id)` | text, uuid | `{ display_name, points_spent, balance }` | `COOLDOWN_ACTIVE`, `INSUFFICIENT_POINTS`, `ALREADY_EXISTS`, `PROHIBITED_CONTENT` |
 | `set_consent(analytics, personalized_ads, policy_version)` | bool, bool, text | consent | `VALIDATION_FAILED` |
 | `update_settings(settings)` | jsonb (`lock_screen_preview`, `push_prefs`) | settings | `VALIDATION_FAILED` |

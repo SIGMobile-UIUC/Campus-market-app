@@ -19,16 +19,20 @@ export function Button({
   label,
   onPress,
   variant = "accent",
+  disabled = false,
 }: {
   label: string;
   onPress?: () => void;
   variant?: Variant;
+  disabled?: boolean;
 }) {
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={onPress}
-      className={`h-12 items-center justify-center rounded-2xl px-6 active:opacity-80 ${CONTAINER[variant]}`}
+      className={`h-12 items-center justify-center rounded-2xl px-6 active:opacity-80 ${CONTAINER[variant]} ${disabled ? "opacity-40" : ""}`}
     >
       <Text className={`text-base font-bold ${LABEL[variant]}`}>{label}</Text>
     </Pressable>

@@ -1,5 +1,8 @@
 -- Local development data. Zones, meetup spots, ZIP codes and categories arrive with DB-5.
 
+-- Tombstone HMAC key. Staging and production set their own random key in Vault.
+select vault.create_secret('local-development-only', 'email_hmac_key');
+
 insert into public.campuses (slug, name, status, timezone, lat, lng, primary_color, accent_color) values
   ('illinois', 'University of Illinois Urbana-Champaign', 'live',     'America/Chicago',              40.1020, -88.2272, '#13294B', '#FF5F05'),
   ('purdue',   'Purdue University',                       'live',     'America/Indiana/Indianapolis', 40.4237, -86.9212, '#000000', '#CFB991'),

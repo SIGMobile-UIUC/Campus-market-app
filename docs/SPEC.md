@@ -1128,9 +1128,10 @@ sequenceDiagram
 
 - **The hook runs at code request.** Supabase creates the auth user when the code is requested, before it is confirmed. Profiles are therefore created only by a trigger on `auth.users` when `email_confirmed_at` changes from null, never on insert. Unconfirmed auth users older than 24 hours are deleted by a job.
 - **No plus addresses.** The hook rejects any local part containing `+`. This removes the alias problem without normalization, and nobody can occupy another user's address by requesting a code for a variant of it.
-- **Disposable domains:** the hook rejects domains on a disposable-email blocklist kept in `app_config`. Any other email is accepted.
+- **Disposable domains:** the hook rejects domains on a disposable-email blocklist kept in `app_config` (key `disposable_domains`), and their subdomains. Any other email is accepted.
+- **Hook function:** `private.hook_before_user_created(event)`, executable only by `supabase_auth_admin`. Rejections return HTTP 403 with the code as the message.
 - **Campus matching:** a student's email domain must equal a listed domain, or end with `.` plus a listed domain that has `include_subdomains`. A plain suffix check would accept `fakeillinois.edu`. Matching decides the campus, not whether sign-up is allowed.
-- **Tombstones:** the hook computes `HMAC-SHA256(lower(email), secret)` and rejects it when `private.identity_tombstones` holds an unexpired row. The secret lives in Supabase Vault, so a database dump alone cannot reverse emails from the hashes.
+- **Tombstones:** the hook computes `HMAC-SHA256(lower(email), secret)` and rejects it when `private.identity_tombstones` holds an unexpired row. The secret lives in Supabase Vault (`email_hmac_key`), so a database dump alone cannot reverse emails from the hashes. Without the key the check is skipped, and no tombstone can be written either.
 - **Campus assignment:** the confirmation trigger sets `profiles.campus_id` to the matched campus, `live` or `waitlist`, or leaves it null for a general user. The nickname stays null until `complete_onboarding`, and other users do not see a profile before then.
 - **Confirm email stays on** (local `enable_confirmations = true`, the hosted default), so a new user is unconfirmed until the code is verified.
 

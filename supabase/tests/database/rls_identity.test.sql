@@ -55,12 +55,12 @@ select isnt_empty($$ select 1 from public.campuses where slug = 'gamma' $$, 'cam
 select is_empty($$ select 1 from public.campus_domains $$, 'campus domains are not readable');
 
 reset role;
-insert into public.app_config (key, value, public) values ('min_app_version', '"1.0.0"', true), ('rank_rules', '{}', false);
+insert into public.app_config (key, value, public) values ('test_public', '1', true), ('test_private', '1', false);
 select tests.login_as(tests.user_id('alpha1'));
-select set_eq($$ select key from public.app_config where key in ('min_app_version', 'rank_rules') $$, array['min_app_version'], 'only public config is readable');
+select set_eq($$ select key from public.app_config where key in ('test_public', 'test_private') $$, array['test_public'], 'only public config is readable');
 
 select tests.login_anon();
-select set_eq($$ select key from public.app_config where key in ('min_app_version', 'rank_rules') $$, array['min_app_version'], 'signed-out app reads public config');
+select set_eq($$ select key from public.app_config where key in ('test_public', 'test_private') $$, array['test_public'], 'signed-out app reads public config');
 select is_empty($$ select 1 from public.campuses $$, 'signed-out users read no campuses');
 
 select * from finish();

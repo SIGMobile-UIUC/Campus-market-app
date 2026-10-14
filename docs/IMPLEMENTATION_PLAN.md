@@ -51,6 +51,8 @@ docs/                   SPEC.md, this plan
 | Staging | Supabase free project; Resend for sign-in codes | EAS preview builds for the team and testers |
 | Production | Created for the beta, not needed for the demo | |
 
+Staging Supabase setup, since `config.toml` applies only locally: keep Confirm email on; paste `supabase/templates/code.html` into the confirmation and magic link templates; enable the Before User Created hook with `private.hook_before_user_created`; add a random Vault secret named `email_hmac_key`.
+
 Needed before week 2: a Supabase organization owned by the team, an Expo account, a sending domain for Resend (SPF, DKIM, DMARC), and secrets stored in GitHub Actions and EAS. Needed before iOS builds: an Apple Developer account ($99 per year). Android dev builds work without a store account.
 
 ## 4. Milestones
@@ -76,7 +78,7 @@ Done when: a fresh clone runs the app in under 15 minutes by following the READM
 | --- | --- | --- | --- |
 | DB-1 | Types, `campuses`, `campus_domains`, `campus_zones`, `meetup_spots`, `zip_codes` (Illinois subset for the demo), `app_config` | Backend | Done |
 | DB-2 | `profiles`, `private.accounts`, `user_roles`, `user_settings`, `consents`; profile creation on email confirmation; `get_my_account`, `complete_onboarding` | Backend | Done; starter avatar joins with DB-12 |
-| DB-3 | Before User Created hook: plus addresses, disposable domains, tombstones; Resend as the auth SMTP on staging | Backend | |
+| DB-3 | Before User Created hook: plus addresses, disposable domains, tombstones; Resend as the auth SMTP on staging | Backend | Hook done; Resend waits for the sending domain |
 | DB-4 | RLS on every table, function security lint, pgTAP harness with the RLS matrix users (same campus, other campus, waitlist, general, suspended, banned) | Backend | Done; CI runs lint and pgTAP |
 | DB-5 | Seed: two live campuses (Illinois, Purdue) and one waitlist campus (Michigan), categories from spec 1.7.5, rule values | Backend | Campuses and domains seeded; zones, spots, ZIP codes, categories next |
 | APP-3 | Onboarding: email, 6-digit code, campus reveal, ZIP for general users, nickname and avatar, rules and consent; session in SecureStore | App | Code email template ready |

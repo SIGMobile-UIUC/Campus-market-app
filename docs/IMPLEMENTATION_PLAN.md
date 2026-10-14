@@ -76,11 +76,11 @@ Done when: a fresh clone runs the app in under 15 minutes by following the READM
 
 | ID | Task | Area | Status |
 | --- | --- | --- | --- |
-| DB-1 | Types, `campuses`, `campus_domains`, `campus_zones`, `meetup_spots`, `zip_codes` (Illinois subset for the demo), `app_config` | Backend | Done |
+| DB-1 | Types, `campuses`, `campus_domains`, `campus_zones`, `meetup_spots`, `zip_codes`, `app_config` | Backend | Done |
 | DB-2 | `profiles`, `private.accounts`, `user_roles`, `user_settings`, `consents`; profile creation on email confirmation; `get_my_account`, `complete_onboarding` | Backend | Done; starter avatar joins with DB-12 |
 | DB-3 | Before User Created hook: plus addresses, disposable domains, tombstones; Resend as the auth SMTP on staging | Backend | Hook done; Resend waits for the sending domain |
 | DB-4 | RLS on every table, function security lint, pgTAP harness with the RLS matrix users (same campus, other campus, waitlist, general, suspended, banned) | Backend | Done; CI runs lint and pgTAP |
-| DB-5 | Seed: two live campuses (Illinois, Purdue) and one waitlist campus (Michigan), categories from spec 1.7.5, rule values | Backend | Campuses and domains seeded; zones, spots, ZIP codes, categories next |
+| DB-5 | Seed: two live campuses (Illinois, Purdue) and one waitlist campus (Michigan), categories from spec 1.7.5, rule values | Backend | Done; ZIP codes (all US), categories and rule values in migrations; zone and spot coordinates need a map check |
 | APP-3 | Onboarding: email, 6-digit code, campus reveal, ZIP for general users, nickname and avatar, rules and consent; session in SecureStore | App | Code email template ready |
 | APP-4 | Home header with campus name and market toggle; theme switches with the campus | App | |
 
@@ -130,7 +130,7 @@ Done when: two phones complete a trade end to end on staging, with push notifica
 | APP-12 | Me tab: grade card with progress, wallet and history, daily check-in, shop and avatar editor (SVG layers) | App |
 | APP-13 | Report and block menus; account status page; admin queue and case view for admins | App |
 | APP-14 | Dispute flow with in-app camera evidence | App |
-| APP-19 | Settings: notifications, privacy and consent changes, blocked users, community rules, contact address, account (entry to account deletion) | App |
+| APP-19 | Settings: notifications, privacy and consent changes, blocked users, community rules, contact address, data credits (GeoNames, CC BY 4.0), account (entry to account deletion) | App |
 | TST-3 | Race test for the daily points cap; pgTAP for trust grades and points rules | Backend |
 
 Done when: after a completed trade both users see their new points and, once the job runs, their grade; a report from three users hides a listing.

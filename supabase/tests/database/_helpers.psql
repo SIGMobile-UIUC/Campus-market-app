@@ -53,7 +53,8 @@ begin
   values ('gamma', 'Gamma University', 'waitlist', 'America/Detroit', 42, -83) returning id into v_gamma;
   insert into public.campus_domains (domain, campus_id, include_subdomains)
   values ('alpha.edu', v_alpha, true), ('beta.edu', v_beta, false), ('gamma.edu', v_gamma, false);
-  insert into public.zip_codes (zip, city, state, lat, lng) values ('61820', 'Champaign', 'IL', 40.11, -88.24);
+  insert into public.zip_codes (zip, city, state, lat, lng) values ('61820', 'Champaign', 'IL', 40.11, -88.24)
+  on conflict (zip) do nothing;
 
   insert into tests.matrix (name, id) values
     ('alpha1',    tests.create_user('alpha1@alpha.edu')),

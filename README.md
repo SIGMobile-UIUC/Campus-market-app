@@ -51,6 +51,11 @@ npx supabase start
 - `npx supabase db reset` reapplies migrations and `supabase/seed.sql`.
 - Database tests (pgTAP, in `supabase/tests/database`) run in CI; run them locally with `npx supabase test db`.
 
+## Data credits
+
+- ZIP codes: [GeoNames](https://www.geonames.org), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
+- Disposable email domains: [disposable-email-domains](https://github.com/disposable-email-domains/disposable-email-domains), CC0
+
 ## Contributing
 
 - Branch from `main`, open a pull request, and wait for checks and a review. Nobody pushes to `main` directly.

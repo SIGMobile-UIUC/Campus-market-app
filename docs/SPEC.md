@@ -463,7 +463,7 @@ The size follows the large secondhand marketplaces, which use 14 to 20 top-level
 
 - Not a category because policy prohibits them (section 2.2): tickets, housing and subleases, live animals, alcohol, gift cards and digital codes, and adult items in the MVP. Cars and motorcycles are out of scope for the MVP: a title transfer goes beyond a meetup trade.
 - Home shows the first nine categories in the campus's current order plus More; the Categories tab shows all of them with their subcategories.
-- The list lives in `app_config.categories`, with icons and prohibited keywords per subcategory, so it changes without an app release.
+- The list lives in `app_config.categories` as `{ categories: [{ id, label, icon, subcategories: [{ id, label }] }] }` with lucide icon names, so it changes without an app release. Prohibited keywords per subcategory join it with the text filter (DB-6).
 - Each campus can reorder categories for the season (move-in and move-out: Furniture, Appliances, Kitchen, Bedding and bath first; start of term: Textbooks, School and office supplies first) without changing the list itself.
 - 18+ games are not allowed in Video games in the MVP (section 2.3).
 
@@ -1961,7 +1961,7 @@ create table public.meetup_spots (
   radius_m  integer not null default 150 check (radius_m between 25 and 1000)
 );
 
-create table public.zip_codes (            -- seeded from the Census ZCTA file
+create table public.zip_codes (            -- every ZIP in the 50 states and DC, from GeoNames (CC BY 4.0)
   zip   text primary key check (zip ~ '^[0-9]{5}$'),
   city  text not null,
   state text not null,

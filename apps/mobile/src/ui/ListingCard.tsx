@@ -1,5 +1,5 @@
 import { Image } from "expo-image";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 import { formatAgo, formatPrice } from "@/lib/format";
 
@@ -23,37 +23,76 @@ function priceLine(card: ListingCardData) {
   return formatPrice(card.priceCents);
 }
 
-// One feed row as buyers see it (spec 3.4 wireframe): photo, title, price, area and age.
-export function ListingCard({ card }: { card: ListingCardData }) {
-  const photoStyle = { width: 96, height: 96, borderRadius: 12 };
+function metaLine(card: ListingCardData) {
+  return [
+    card.areaLabel,
+    card.bumpedAt ? formatAgo(card.bumpedAt) : "now",
+    card.campusOnly ? "Campus only" : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function Thumb({ card, style }: { card: ListingCardData; style: object }) {
+  if (card.image && "path" in card.image) {
+    return <Photo path={card.image.path} blurhash={card.image.blurhash} style={style} />;
+  }
+  if (card.image) return <Image source={{ uri: card.image.uri }} style={style} contentFit="cover" />;
   return (
-    <View className="flex-row gap-3 py-3">
-      {card.image && "path" in card.image ? (
-        <Photo path={card.image.path} blurhash={card.image.blurhash} style={photoStyle} />
-      ) : card.image ? (
-        <Image source={{ uri: card.image.uri }} style={photoStyle} contentFit="cover" />
-      ) : (
-        <View className="items-center justify-center bg-surface" style={photoStyle}>
-          <Text className="text-xs font-bold text-muted">
-            {card.kind === "wanted" ? "Wanted" : "No photo"}
-          </Text>
-        </View>
-      )}
+    <View className="items-center justify-center bg-surface" style={style}>
+      <Text className="text-xs font-bold text-muted">{card.kind === "wanted" ? "Wanted" : "No photo"}</Text>
+    </View>
+  );
+}
+
+// A listing as buyers see it (spec 3.4): a row for lists and previews, a tile for two-column grids.
+export function ListingCard({
+  card,
+  variant = "row",
+  onPress,
+}: {
+  card: ListingCardData;
+  variant?: "row" | "tile";
+  onPress?: () => void;
+}) {
+  const label = `${card.title}, ${priceLine(card)}, ${metaLine(card)}`;
+  if (variant === "tile") {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        onPress={onPress}
+        className="flex-1 gap-1 pb-4"
+      >
+        <Thumb card={card} style={{ width: "100%", aspectRatio: 1, borderRadius: 12 }} />
+        <Text className="pt-1 text-[15px] text-ink" numberOfLines={1}>
+          {card.title || "Title"}
+        </Text>
+        <Text className="text-[15px] font-extrabold text-ink" numberOfLines={1}>
+          {priceLine(card)}
+        </Text>
+        <Text className="text-xs text-muted" numberOfLines={1}>
+          {metaLine(card)}
+        </Text>
+      </Pressable>
+    );
+  }
+  return (
+    <Pressable
+      accessibilityRole={onPress ? "button" : undefined}
+      accessibilityLabel={label}
+      onPress={onPress}
+      disabled={!onPress}
+      className="flex-row gap-3 py-3"
+    >
+      <Thumb card={card} style={{ width: 96, height: 96, borderRadius: 12 }} />
       <View className="flex-1 gap-1">
         <Text className="text-base text-ink" numberOfLines={2}>
           {card.title || "Title"}
         </Text>
         <Text className="text-base font-extrabold text-ink">{priceLine(card)}</Text>
-        <Text className="text-[13px] text-muted">
-          {[
-            card.areaLabel,
-            card.bumpedAt ? formatAgo(card.bumpedAt) : "now",
-            card.campusOnly ? "Campus only" : null,
-          ]
-            .filter(Boolean)
-            .join(" · ")}
-        </Text>
+        <Text className="text-[13px] text-muted">{metaLine(card)}</Text>
       </View>
-    </View>
+    </Pressable>
   );
 }

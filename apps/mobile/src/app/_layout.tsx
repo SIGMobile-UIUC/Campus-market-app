@@ -53,6 +53,9 @@ function Shell() {
           <Stack.Protected guard={!!session && onboarded}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="post" />
+            <Stack.Screen name="browse" />
+            <Stack.Screen name="search" />
+            <Stack.Screen name="listing/[id]" />
             <Stack.Screen
               name="sell"
               options={{

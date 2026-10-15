@@ -97,7 +97,7 @@ Done when: a UIUC email lands in the Illinois market with Illinois colors, a Gma
 | APP-7 | Home (modes, Picked for you, first nine categories plus More, Hot this week), Categories tab with all 21 categories and their subcategories in two panes (spec 1.7.5), Category results, Search | App | |
 | APP-8 | Listing page, favorites, similar items, locked preview for campus-only links | App | |
 | APP-20 | My listings on the Me tab: Selling, Reserved and Sold tabs; edit, close, reopen and mark sold elsewhere | App | |
-| APP-16 | Move-out sale page (item rows, status, multi-select) and the Home module | App | |
+| APP-16 | Move-out sale page (item rows, status, multi-select) and the Home module | App | Item rows with status on the listing page; choosing items comes with proposals (M3) |
 | APP-17 | Wanted board, request page and the Home module | App | |
 | TST-1 | pgTAP: listing visibility for every RLS matrix user; storage policies on `listing-photos` | Backend | Done |
 

@@ -1,9 +1,10 @@
 import { randomUUID } from "expo-crypto";
 import { router } from "expo-router";
 import { useState, type ReactNode } from "react";
-import { Alert, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 import { useAccount } from "@/features/account/account";
+import { CONDITIONS } from "@/features/listings/types";
 import { errorField, errorMessage } from "@/lib/errors";
 import type { UploadedPhoto } from "@/lib/media";
 import { Button } from "@/ui/Button";
@@ -11,14 +12,6 @@ import { Chip } from "@/ui/Chip";
 import { ListingCard, type ListingCardData } from "@/ui/ListingCard";
 
 import { postListing, type Draft } from "./postListing";
-
-export const CONDITIONS = [
-  ["new", "New"],
-  ["like_new", "Like new"],
-  ["good", "Good"],
-  ["fair", "Fair"],
-  ["poor", "Poor"],
-] as const;
 
 export const COURSE_CODE = /^[A-Z]{2,5} ?[0-9]{2,4}[A-Z]?$/;
 
@@ -86,12 +79,12 @@ export function usePost() {
     setError(null);
     setStatus("Preparing…");
     try {
-      await postListing(session.user.id, draft, requestId, uploaded, (done, total) =>
+      const listing = await postListing(session.user.id, draft, requestId, uploaded, (done, total) =>
         setStatus(done < total ? `Uploading photos ${done + 1} of ${total}…` : "Posting…"),
       );
       setStatus(null);
-      // ponytail: opens the listing page once it exists (APP-8).
-      Alert.alert("Posted", "Your listing is live.", [{ text: "OK", onPress: () => router.back() }]);
+      // The new listing replaces the editor, so Back from it returns to where Sell was opened.
+      router.replace({ pathname: "/listing/[id]", params: { id: listing.id } });
     } catch (e) {
       setStatus(null);
       setError({ text: errorMessage(e), field: errorField(e) });

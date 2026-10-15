@@ -12,6 +12,8 @@ module.exports = {
         muted: "var(--color-muted)",
         line: "var(--color-line)",
         danger: "var(--color-danger)",
+        success: "var(--color-success)",
+        warning: "var(--color-warning)",
         primary: "var(--color-primary)",
         "on-primary": "var(--color-on-primary)",
         accent: "var(--color-accent)",

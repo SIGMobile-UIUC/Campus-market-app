@@ -1,3 +1,4 @@
+import { router, type Href } from "expo-router";
 import { ChevronRight, Tag } from "lucide-react-native";
 import { Pressable, Text, View } from "react-native";
 
@@ -5,6 +6,13 @@ import { MODES } from "@/features/catalog/catalog";
 import { useTheme } from "@/ui/theme";
 
 const mode = (id: string) => MODES.find((m) => m.id === id)!;
+
+const EDITORS: Record<string, Href> = {
+  item: "/post/item",
+  move_out: "/post/sale",
+  free: { pathname: "/post/item", params: { free: "1" } },
+  wanted: "/post/wanted",
+};
 
 export default function SellType() {
   const { campus, market, colors } = useTheme();
@@ -33,6 +41,8 @@ export default function SellType() {
         <Pressable
           key={id}
           accessibilityRole="button"
+          // The sheet gives way to the editor, so Back from the editor returns to Home.
+          onPress={() => router.replace(EDITORS[id])}
           className="flex-row items-center gap-3.5 rounded-2xl border border-line p-3"
         >
           <View

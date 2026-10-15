@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // KeyboardAvoidingView measures its own layout, which is wrong on Android when an autofocused field opens
 // the keyboard during the screen transition. The keyboard height from the event needs no layout.
-function useKeyboardHeight() {
+export function useKeyboardHeight() {
   const [height, setHeight] = useState(() => Keyboard.metrics()?.height ?? 0);
   useEffect(() => {
     const ios = Platform.OS === "ios";
@@ -20,17 +20,20 @@ function useKeyboardHeight() {
   return height;
 }
 
-// Full-screen step with a title, content and a footer that stays above the keyboard (onboarding).
+// Full-screen step with a title, content and a footer that stays above the keyboard. Under a native
+// header (underHeader), the header shows the title and the content starts right below it.
 export function Screen({
   title,
   subtitle,
   children,
   footer,
+  underHeader = false,
 }: {
-  title: string;
+  title?: string;
   subtitle?: string;
   children?: ReactNode;
   footer?: ReactNode;
+  underHeader?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const keyboard = useKeyboardHeight();
@@ -44,13 +47,19 @@ export function Screen({
       <ScrollView
         className="flex-1"
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingTop: insets.top + 48, paddingHorizontal: 24, paddingBottom: 24 }}
+        contentContainerStyle={{
+          paddingTop: underHeader ? 16 : insets.top + 48,
+          paddingHorizontal: 24,
+          paddingBottom: 24,
+        }}
       >
-        <Text accessibilityRole="header" className="text-[28px] font-extrabold text-ink">
-          {title}
-        </Text>
+        {title ? (
+          <Text accessibilityRole="header" className="text-[28px] font-extrabold text-ink">
+            {title}
+          </Text>
+        ) : null}
         {subtitle ? <Text className="mt-2 text-base text-muted">{subtitle}</Text> : null}
-        <View className="mt-8 gap-4">{children}</View>
+        <View className={`${title || subtitle ? "mt-8" : ""} gap-4`}>{children}</View>
       </ScrollView>
       {footer ? (
         <View className="gap-3 px-6 pt-3" style={{ paddingBottom: bottom }}>

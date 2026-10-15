@@ -93,7 +93,7 @@ Done when: a UIUC email lands in the Illinois market with Illinois colors, a Gma
 | DB-6 | `listings`, `items`, `listing_photos`, `favorites`; `create_listing` for all three kinds (item, bundle of 2 to 30, wanted with budget), `update_listing`, `close_listing`, `delete_listing`, `mark_sold_elsewhere`; item-count check per kind; prohibited-keyword and area trigger; daily posting limits | Backend | Done; bumps (P1) later |
 | DB-7 | `feed` and `search_listings` with modes, categories, filters, keyset paging; full-text plus trigram search; indexes from spec 5.4 | Backend | |
 | APP-5 | `src/lib/media`: camera and library, resize, WebP with JPEG fallback, size targets, blurhash, upload, signed URL batches | App | Done; iOS and real-phone check in QA-1 |
-| APP-6 | Sell flow: type picker, one item and Give it away (photos, details with category and subcategory, price, trade options, preview), Move-out sale (add, reorder and price up to 30 items), Wanted request (title, budget, category) | App | |
+| APP-6 | Sell flow: type picker, one item and Give it away (photos, details with category and subcategory, price, trade options, preview), Move-out sale (add, reorder and price up to 30 items), Wanted request (title, budget, category) | App | Done; opens the listing page after posting once APP-8 lands |
 | APP-7 | Home (modes, Picked for you, first nine categories plus More, Hot this week), Categories tab with all 21 categories and their subcategories in two panes (spec 1.7.5), Category results, Search | App | |
 | APP-8 | Listing page, favorites, similar items, locked preview for campus-only links | App | |
 | APP-20 | My listings on the Me tab: Selling, Reserved and Sold tabs; edit, close, reopen and mark sold elsewhere | App | |

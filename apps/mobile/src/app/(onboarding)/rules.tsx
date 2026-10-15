@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { Linking, Pressable, Switch, Text, View } from "react-native";
+import { Linking, Text, View } from "react-native";
 
 import { useAccount } from "@/features/account/account";
 import { errorMessage } from "@/lib/errors";
@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/ui/Button";
 import { Screen } from "@/ui/Screen";
 import { TextLink } from "@/ui/TextLink";
-import { useTheme } from "@/ui/theme";
+import { Toggle } from "@/ui/Toggle";
 
 // Stored with the consent row; matches the version line of docs/TERMS.md.
 const TERMS_VERSION = "2026-10";
@@ -98,41 +98,5 @@ export default function RulesAndConsent() {
         onChange={setAds}
       />
     </Screen>
-  );
-}
-
-function Toggle({
-  label,
-  detail,
-  value,
-  onChange,
-}: {
-  label: string;
-  detail?: string;
-  value: boolean;
-  onChange: (value: boolean) => void;
-}) {
-  const { colors } = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="switch"
-      accessibilityState={{ checked: value }}
-      onPress={() => onChange(!value)}
-      className="flex-row items-center gap-3"
-    >
-      <View className="flex-1">
-        <Text className="text-[15px] font-bold text-ink">{label}</Text>
-        {detail ? <Text className="text-[13px] text-muted">{detail}</Text> : null}
-      </View>
-      {/* The row is the switch for screen readers; hiding this one avoids a second focus stop. */}
-      <Switch
-        value={value}
-        onValueChange={onChange}
-        trackColor={{ true: colors.accent }}
-        thumbColor="#FFFFFF"
-        importantForAccessibility="no-hide-descendants"
-        accessibilityElementsHidden
-      />
-    </Pressable>
   );
 }

@@ -1257,10 +1257,11 @@ Photos are almost all of the stored bytes and the egress. Estimates for the beta
 
 ### 4.8 Discovery
 
-- **Feeds:** `feed(scope, filters, cursor)` is an invoker function over the partial feed indexes. Keyset cursor `(bumped_at, id)`; price sorts use `(price, id)`.
+- **Feeds:** `feed(scope, filters, cursor)` is `search_listings` without a query: one invoker implementation over the partial feed indexes, so the listings policy decides visibility and the scope picks the market. Keyset cursor `(bumped_at, id)`; price sorts use `(price, id)`. Price is the item's price, a sale's lowest available price, or a wanted request's budget.
+- **Modes:** Free is price 0; Move-out is bundles; Wanted is wanted requests, which other feeds leave out; Under $10 is a price under $10, free included; By course is listings with a course code. Listings of owners whose profile is hidden (suspended, banned, deleted) drop out of feeds.
 - **Open market distance (P1):** the haversine distance from the viewer's point (their campus, or their profile ZIP code) to the listing's `lat` and `lng`. A bounding-box condition on `lat` and `lng` narrows rows before the exact distance. Filter `within_miles`; sort `distance`. ZIP centroids come from the seeded GeoNames table, so no user location is collected.
 - **Bumps:** a bumped listing can appear twice within one scroll session; the app drops rows whose id it already shows.
-- **Search:** `websearch_to_tsquery` on `search`, with a `pg_trgm` similarity fallback on title when full-text returns fewer than 5 results.
+- **Search:** `websearch_to_tsquery` on `search`, with a `pg_trgm` word-similarity fallback on title (threshold 0.4, since a missing letter scores about 0.45) when full-text returns fewer than 5 results.
 
 ### 4.9 Chat and real-time
 
@@ -2760,7 +2761,7 @@ Sign-in uses Supabase Auth directly (`signInWithOtp` with `shouldCreateUser: tru
 | `search_listings(q, scope, filters, sort, cursor, limit)` (invoker) | text, text, jsonb, `newest` / `price_asc` / `price_desc` / `distance`, jsonb, int | `{ rows[], next_cursor }` | `VALIDATION_FAILED` |
 | `get_listing(listing_id)` (invoker) | uuid | listing with items, photos, owner card, distance | `NOT_FOUND` (also for invisible listings); for a campus-only listing from another campus, returns `{ locked: true, campus_name }` |
 
-Feed and search rows carry `id, kind, title, price_cents (first available item or minimum), status, thumb_path, owner { display_name, tier, campus_slug (null for general users) }, zone, area_label, distance_miles (P1), bumped_at`.
+Feed and search rows carry `id, kind, title, price_cents (the item's price, a sale's lowest available price, or a wanted budget), item_count, status, campus_only, thumb_path, blurhash, owner { display_name, tier, campus_slug (null for general users) }, zone, area_label, distance_miles (P1), bumped_at`.
 
 Favorites use the `favorites` table directly (insert or delete own rows).
 

@@ -1170,14 +1170,14 @@ using (
     deleted_at is null
     and hidden = false
     and (visibility = 'open' or campus_id = (select private.my_live_campus_id()))
-    and owner_id <> all ((select private.my_block_list()))
+    and owner_id <> all ((select private.my_block_list())::uuid[])
   )
 );
 ```
 
 - Every function call in a policy is wrapped in `(select ...)` so it runs once per statement, not once per row.
 - `my_block_list()` returns users I blocked or who blocked me, and returns `'{}'` when empty; `x <> all(null)` would be null and hide everything.
-- `listings.campus_id` and `visibility` are set by a `before insert` trigger: the owner's campus (null for general users), and `open` forced when the owner has no live campus.
+- `listings.campus_id` and `visibility` are set by `create_listing`, the only write path: the owner's campus (null for general users), and `CAMPUS_REQUIRED` for a campus-only post when the owner has no live campus.
 - General users and waitlist students have no live campus, so `my_live_campus_id()` returns null and they see only open listings.
 - Storage policies on each private bucket call a helper that applies the same visibility as the owning row (listing, chat, trade or dispute).
 - Every `public` table has RLS enabled; a migration lint fails CI otherwise. Views use `security_invoker = true`.
@@ -1198,9 +1198,12 @@ A pgTAP test reads `pg_proc` and fails when a `security definer` function in `pu
 - **Atomic creation:** `create_listing` inserts the listing, its items and photo rows in one transaction. A deferred constraint trigger checks the item count per kind at commit.
 - **Edits and reserved items:** `update_listing` refuses to change the price, name or condition of a reserved or sold item, so a trade's terms cannot shift under it. Trades also snapshot item names and prices.
 - **Status sync:** a trigger on `items` sets `listings.status` to `sold_out` when every item is sold and back to `active` when one returns.
-- **Prohibited items:** blocked categories, including adult items in the MVP, cannot be chosen. A `before insert or update` trigger checks titles, descriptions and item names against the keyword list in `app_config`, raising `PROHIBITED_CONTENT`.
-- **Area:** the same trigger sets `lat`, `lng` and `area_label` from the owner's campus, or from the listing's ZIP code through the seeded `zip_codes` table for general users.
-- **Limits:** new listings per day, 20 for students and 5 for general users, checked in `create_listing`.
+- **Prohibited items:** blocked categories, including adult items in the MVP, cannot be chosen. A `before insert or update` trigger checks titles, descriptions and item names against `app_config.text_filter` (`{ terms: [...] }`, whole words or phrases, ignoring case), raising `PROHIBITED_CONTENT`. Generic words that allowed items share ("wine glasses", "Ticket to Ride", "glue gun") are not terms.
+- **Area:** `create_listing` and `update_listing` set `lat`, `lng` and `area_label` from the owner's campus (live or waitlist), or from the listing's ZIP code through the seeded `zip_codes` table for general users.
+- **Limits:** new listings in the last 24 hours, 20 for students and 5 for general users (`app_config.limits`), checked in `create_listing` under a lock on the owner's profile row, so parallel posts cannot exceed it. Deleted listings count.
+- **Retries:** `listings.request_id` is unique; a repeated `create_listing` returns the first result.
+- **Photos:** 1 to 10 per item for items and bundles, up to 3 for a wanted request; paths must be in the caller's folder of `listing-photos` (`{user_id}/...`). The bucket accepts WebP and JPEG up to 400 KB. Uploaders read their own folder; anyone else reads a photo only through a listing they can see.
+- **Payment methods:** any of `cash`, `venmo`, `zelle`, `paypal`, `apple_pay`, `cash_app`.
 - **Signed URLs:** requested in batches per feed page (`createSignedUrls`, 1-hour expiry). expo-image caches by `cacheKey = path`. When a load fails with 400 or 403 because a cached URL expired, the app requests a new URL for that path and retries once.
 - **One media module:** the app compresses, uploads and resolves photo URLs only through `src/lib/media`, and rows store object paths, never URLs. Moving photos to another store then changes this module and one Edge Function, not the screens or the schema.
 - **Orphans:** the daily maintenance job deletes objects older than 24 hours that no row references.
@@ -1255,7 +1258,7 @@ Photos are almost all of the stored bytes and the egress. Estimates for the beta
 ### 4.8 Discovery
 
 - **Feeds:** `feed(scope, filters, cursor)` is an invoker function over the partial feed indexes. Keyset cursor `(bumped_at, id)`; price sorts use `(price, id)`.
-- **Open market distance (P1):** the haversine distance from the viewer's point (their campus, or their profile ZIP code) to the listing's `lat` and `lng`. A bounding-box condition on `lat` and `lng` narrows rows before the exact distance. Filter `within_miles`; sort `distance`. ZIP centroids come from the public Census ZCTA file, so no user location is collected.
+- **Open market distance (P1):** the haversine distance from the viewer's point (their campus, or their profile ZIP code) to the listing's `lat` and `lng`. A bounding-box condition on `lat` and `lng` narrows rows before the exact distance. Filter `within_miles`; sort `distance`. ZIP centroids come from the seeded GeoNames table, so no user location is collected.
 - **Bumps:** a bumped listing can appear twice within one scroll session; the app drops rows whose id it already shows.
 - **Search:** `websearch_to_tsquery` on `search`, with a `pg_trgm` similarity fallback on title when full-text returns fewer than 5 results.
 
@@ -2125,7 +2128,7 @@ create table public.listing_bumps (
 );
 ```
 
-A deferred constraint trigger on `items` checks the item count per listing kind at commit (1 for `item`, 2 to 30 for `bundle`, 0 for `wanted`). A trigger on `items` keeps `listings.status` in sync (`sold_out` when every item is sold).
+A deferred constraint trigger on `listings` and `items` checks the item count per listing kind at commit (1 for `item`, 2 to 30 for `bundle`, 0 for `wanted`); trigger functions are security definer because the deferred check runs as the caller at commit. A trigger on `items` keeps `listings.status` in sync (`sold_out` when every item is sold).
 
 #### 5.3.5 Chat
 

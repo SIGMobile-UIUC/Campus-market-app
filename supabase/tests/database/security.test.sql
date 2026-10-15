@@ -18,7 +18,8 @@ select is_empty(
 -- Add a function here only together with its guard.
 select set_eq(
   $$ select p.proname::text from pg_proc p where p.pronamespace = 'public'::regnamespace and p.prosecdef $$,
-  array['get_my_account', 'complete_onboarding'],
+  array['get_my_account', 'complete_onboarding', 'create_listing', 'update_listing', 'close_listing',
+        'reopen_listing', 'delete_listing', 'mark_sold_elsewhere'],
   'security definer functions in public match the allowlist'
 );
 
@@ -42,7 +43,7 @@ select set_eq(
   $$ select p.proname::text from pg_proc p
      where p.pronamespace = 'private'::regnamespace and p.prokind = 'f'
        and has_function_privilege('authenticated', p.oid, 'execute') $$,
-  array['my_live_campus_id'],
+  array['my_live_campus_id', 'my_block_list'],
   'authenticated can execute only the allowlisted private helpers'
 );
 

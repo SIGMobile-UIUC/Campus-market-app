@@ -71,3 +71,42 @@ begin
   update public.profiles set status = 'banned' where id = tests.user_id('banned');
 end;
 $$;
+
+-- Named ids for use inside quoted test statements: tests.remember('l1', id), tests.id('l1').
+create table tests.ids (name text primary key, id uuid not null);
+grant select, insert on tests.ids to anon, authenticated;
+
+create function tests.remember(p_name text, p_id uuid) returns uuid
+language sql as $$
+  insert into tests.ids (name, id) values (p_name, p_id) returning id;
+$$;
+
+create function tests.id(p_name text) returns uuid
+language sql stable as $$
+  select id from tests.ids where name = p_name;
+$$;
+
+-- A valid one-item listing payload for the owner; keys in p_extra replace the defaults.
+create function tests.listing_payload(p_owner uuid, p_extra jsonb default '{}') returns jsonb
+language sql as $$
+  select jsonb_build_object(
+    'kind', 'item', 'title', 'IKEA desk', 'category', 'furniture', 'subcategory', 'desks',
+    'items', jsonb_build_array(jsonb_build_object('name', 'IKEA desk', 'price_cents', 4000, 'condition', 'good')),
+    'photos', jsonb_build_array(jsonb_build_object(
+      'path', p_owner || '/' || gen_random_uuid() || '.webp', 'thumb_path', p_owner || '/' || gen_random_uuid() || '.webp',
+      'blurhash', 'LKO2?U%2Tw=w', 'bytes', 240000, 'item_position', 1))
+  ) || p_extra;
+$$;
+
+-- Creates a listing as a matrix user and returns its id; the role is reset afterwards.
+create function tests.create_listing_as(p_name text, p_extra jsonb default '{}') returns uuid
+language plpgsql as $$
+declare
+  v_id uuid;
+begin
+  perform tests.login_as(tests.user_id(p_name));
+  v_id := (public.create_listing(tests.listing_payload(tests.user_id(p_name), p_extra), gen_random_uuid()) ->> 'id')::uuid;
+  perform set_config('role', 'none', true);
+  return v_id;
+end;
+$$;

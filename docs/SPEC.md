@@ -1204,7 +1204,7 @@ A pgTAP test reads `pg_proc` and fails when a `security definer` function in `pu
 - **Retries:** `listings.request_id` is unique; a repeated `create_listing` returns the first result.
 - **Photos:** 1 to 10 per item for items and bundles, up to 3 for a wanted request; paths must be in the caller's folder of `listing-photos` (`{user_id}/...`). The bucket accepts WebP and JPEG up to 400 KB. Uploaders read their own folder; anyone else reads a photo only through a listing they can see.
 - **Payment methods:** any of `cash`, `venmo`, `zelle`, `paypal`, `apple_pay`, `cash_app`.
-- **Signed URLs:** requested in batches per feed page (`createSignedUrls`, 1-hour expiry). expo-image caches by `cacheKey = path`. When a load fails with 400 or 403 because a cached URL expired, the app requests a new URL for that path and retries once.
+- **Signed URLs:** requested in batches per feed page (`createSignedUrls`, 1-hour expiry): `src/lib/photoUrls` collects every path requested in the same moment into one call and reuses a URL for 55 minutes. expo-image caches by `cacheKey = path`. When a load fails because a cached URL expired, the app requests a new URL for that path and retries once.
 - **One media module:** the app compresses, uploads and resolves photo URLs only through `src/lib/media`, and rows store object paths, never URLs. Moving photos to another store then changes this module and one Edge Function, not the screens or the schema.
 - **Orphans:** the daily maintenance job deletes objects older than 24 hours that no row references.
 
@@ -1217,7 +1217,7 @@ Every photo is compressed on the phone before upload; the server never stores an
 | Resize | Long edge 1600 px for the detail image and 400 px for the thumbnail, with expo-image-manipulator. Smaller originals are not upscaled. |
 | Encode | WebP at quality 0.75 for listing and chat photos, 0.85 for dispute evidence. If a device fails to encode WebP, JPEG at the same quality. |
 | Size target | Detail at most 300 KB, thumbnail at most 30 KB. Over the target, the app re-encodes at quality 0.65, then 0.55. Typical results are about 225 KB and 22 KB, roughly 30% smaller than the JPEG sizes this design started with (350 KB and 35 KB). |
-| Metadata | Re-encoding drops EXIF data, including GPS; a test asserts no GPS tags survive. |
+| Metadata | Re-encoding drops EXIF data, including GPS. Checked on a device: a photo with GPS tags uploads with no EXIF at all; repeat on iOS and on real phones during QA-1. |
 | Placeholder | A blurhash computed on the phone with expo-image is stored on the photo row and shown while the image loads. |
 | Server checks | Buckets accept only `image/webp` and `image/jpeg` and reject files over 400 KB (Supabase bucket `allowed_mime_types` and `file_size_limit`; on R2 the `media` function signs only those). |
 | Caching | Object paths are random and never reused, so objects never change and are served with a one-year cache header; an edited photo is a new object. |

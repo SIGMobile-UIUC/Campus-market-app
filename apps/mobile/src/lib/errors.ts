@@ -11,6 +11,9 @@ const MESSAGES: Record<string, string> = {
   PROHIBITED_CONTENT: "That isn't allowed. Try something else.",
   ZIP_REQUIRED: "Enter a valid US ZIP code.",
   INVALID_STATE: "This step is already done.",
+  CAMPUS_REQUIRED: "Campus-only posts need a live campus market.",
+  LIMIT_REACHED: "You've reached today's posting limit. Try again tomorrow.",
+  ITEM_UNAVAILABLE: "Some items are reserved or sold, so they can't change.",
 };
 
 export function errorMessage(error: unknown): string {
@@ -22,4 +25,13 @@ export function errorMessage(error: unknown): string {
   if (e?.message?.includes("Network request failed") || e?.message?.includes("Aborted"))
     return "No connection. Check your internet and try again.";
   return "Something went wrong. Try again.";
+}
+
+// The field a P0001 error names in its details, such as "title" or "photos" (spec 6.2).
+export function errorField(error: unknown): string | null {
+  try {
+    return JSON.parse((error as { details?: string } | null)?.details ?? "").field ?? null;
+  } catch {
+    return null;
+  }
 }

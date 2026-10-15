@@ -52,6 +52,7 @@ function Shell() {
           </Stack.Protected>
           <Stack.Protected guard={!!session && onboarded}>
             <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="post" />
             <Stack.Screen
               name="sell"
               options={{

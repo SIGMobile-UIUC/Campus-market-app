@@ -28,6 +28,8 @@ const NEUTRALS = {
     muted: "#5E6168",
     line: "#E7E8EB",
     danger: "#B42318",
+    success: "#1F7A3F",
+    warning: "#B54708",
   },
   dark: {
     bg: "#0F0F10",
@@ -36,6 +38,8 @@ const NEUTRALS = {
     muted: "#A6A6AB",
     line: "#2A2A2D",
     danger: "#F97066",
+    success: "#4ADE80",
+    warning: "#FDB022",
   },
 };
 
@@ -90,6 +94,8 @@ export function ThemeProvider({ campus, children }: { campus: Campus | null; chi
           "--color-muted": colors.muted,
           "--color-line": colors.line,
           "--color-danger": colors.danger,
+          "--color-success": colors.success,
+          "--color-warning": colors.warning,
           "--color-primary": colors.primary,
           "--color-on-primary": colors.onPrimary,
           "--color-accent": colors.accent,

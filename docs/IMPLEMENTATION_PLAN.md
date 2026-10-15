@@ -88,18 +88,18 @@ Done when: a UIUC email lands in the Illinois market with Illinois colors, a Gma
 
 ### M2 · Listings and discovery (weeks 3 to 5, Oct 19 to Nov 8)
 
-| ID | Task | Area |
-| --- | --- | --- |
-| DB-6 | `listings`, `items`, `listing_photos`, `favorites`; `create_listing` for all three kinds (item, bundle of 2 to 30, wanted with budget), `update_listing`, `close_listing`, `delete_listing`, `mark_sold_elsewhere`; item-count check per kind; prohibited-keyword and area trigger; daily posting limits | Backend |
-| DB-7 | `feed` and `search_listings` with modes, categories, filters, keyset paging; full-text plus trigram search; indexes from spec 5.4 | Backend |
-| APP-5 | `src/lib/media`: camera and library, resize, WebP with JPEG fallback, size targets, blurhash, upload, signed URL batches | App |
-| APP-6 | Sell flow: type picker, one item and Give it away (photos, details with category and subcategory, price, trade options, preview), Move-out sale (add, reorder and price up to 30 items), Wanted request (title, budget, category) | App |
-| APP-7 | Home (modes, Picked for you, first nine categories plus More, Hot this week), Categories tab with all 21 categories and their subcategories in two panes (spec 1.7.5), Category results, Search | App |
-| APP-8 | Listing page, favorites, similar items, locked preview for campus-only links | App |
-| APP-20 | My listings on the Me tab: Selling, Reserved and Sold tabs; edit, close, reopen and mark sold elsewhere | App |
-| APP-16 | Move-out sale page (item rows, status, multi-select) and the Home module | App |
-| APP-17 | Wanted board, request page and the Home module | App |
-| TST-1 | pgTAP: listing visibility for every RLS matrix user; storage policies on `listing-photos` | Backend |
+| ID | Task | Area | Status |
+| --- | --- | --- | --- |
+| DB-6 | `listings`, `items`, `listing_photos`, `favorites`; `create_listing` for all three kinds (item, bundle of 2 to 30, wanted with budget), `update_listing`, `close_listing`, `delete_listing`, `mark_sold_elsewhere`; item-count check per kind; prohibited-keyword and area trigger; daily posting limits | Backend | Done; bumps (P1) later |
+| DB-7 | `feed` and `search_listings` with modes, categories, filters, keyset paging; full-text plus trigram search; indexes from spec 5.4 | Backend | |
+| APP-5 | `src/lib/media`: camera and library, resize, WebP with JPEG fallback, size targets, blurhash, upload, signed URL batches | App | |
+| APP-6 | Sell flow: type picker, one item and Give it away (photos, details with category and subcategory, price, trade options, preview), Move-out sale (add, reorder and price up to 30 items), Wanted request (title, budget, category) | App | |
+| APP-7 | Home (modes, Picked for you, first nine categories plus More, Hot this week), Categories tab with all 21 categories and their subcategories in two panes (spec 1.7.5), Category results, Search | App | |
+| APP-8 | Listing page, favorites, similar items, locked preview for campus-only links | App | |
+| APP-20 | My listings on the Me tab: Selling, Reserved and Sold tabs; edit, close, reopen and mark sold elsewhere | App | |
+| APP-16 | Move-out sale page (item rows, status, multi-select) and the Home module | App | |
+| APP-17 | Wanted board, request page and the Home module | App | |
+| TST-1 | pgTAP: listing visibility for every RLS matrix user; storage policies on `listing-photos` | Backend | Done |
 
 Done when: a student posts with photos in under a minute, students at another campus and general users cannot see it unless it is in the open market, and the RLS tests prove it.
 

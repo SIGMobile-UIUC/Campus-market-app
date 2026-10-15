@@ -19,7 +19,7 @@ select is_empty(
 select set_eq(
   $$ select p.proname::text from pg_proc p where p.pronamespace = 'public'::regnamespace and p.prosecdef $$,
   array['get_my_account', 'complete_onboarding', 'create_listing', 'update_listing', 'close_listing',
-        'reopen_listing', 'delete_listing', 'mark_sold_elsewhere'],
+        'reopen_listing', 'delete_listing', 'mark_sold_elsewhere', 'favorite_counts'],
   'security definer functions in public match the allowlist'
 );
 

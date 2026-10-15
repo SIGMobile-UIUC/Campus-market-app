@@ -96,7 +96,7 @@ Done when: a UIUC email lands in the Illinois market with Illinois colors, a Gma
 | APP-6 | Sell flow: type picker, one item and Give it away (photos, details with category and subcategory, price, trade options, preview), Move-out sale (add, reorder and price up to 30 items), Wanted request (title, budget, category) | App | Done; opens the listing page after posting once APP-8 lands |
 | APP-7 | Home (modes, Picked for you, first nine categories plus More, Hot this week), Categories tab with all 21 categories and their subcategories in two panes (spec 1.7.5), Category results, Search | App | Done; Picked for you and Hot this week show the newest listings until view history (DSC-5) and engagement events (DB-15) exist |
 | APP-8 | Listing page, favorites, similar items, locked preview for campus-only links | App | Listing page and favorites done; similar items and locked previews are P1; Chat opens with M3 |
-| APP-20 | My listings on the Me tab: Selling, Reserved and Sold tabs; edit, close, reopen and mark sold elsewhere | App | |
+| APP-20 | My listings on the Me tab: Selling, Reserved and Sold tabs; edit, close, reopen and mark sold elsewhere | App | Done with save counts and Favorites; editing photos, category and trade options later |
 | APP-16 | Move-out sale page (item rows, status, multi-select) and the Home module | App | Item rows with status on the listing page; choosing items comes with proposals (M3) |
 | APP-17 | Wanted board, request page and the Home module | App | |
 | TST-1 | pgTAP: listing visibility for every RLS matrix user; storage policies on `listing-photos` | Backend | Done |

@@ -100,10 +100,12 @@ export function PostFooter({
   status,
   error,
   onPost,
+  label = "Post",
 }: {
   status: string | null;
   error: string | null;
   onPost: () => void;
+  label?: string;
 }) {
   return (
     <>
@@ -112,7 +114,7 @@ export function PostFooter({
           {error}
         </Text>
       ) : null}
-      <Button label={status ?? "Post"} onPress={onPost} disabled={status !== null} />
+      <Button label={status ?? label} onPress={onPost} disabled={status !== null} />
     </>
   );
 }

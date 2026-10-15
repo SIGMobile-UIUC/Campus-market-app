@@ -53,3 +53,36 @@ export type Filters = {
   price_max?: number;
   free_only?: boolean;
 };
+
+// A listing read straight from the listings table with its items and photos (My listings, Favorites).
+export type OwnListingRow = {
+  id: string;
+  kind: "item" | "bundle" | "wanted";
+  title: string;
+  status: "active" | "sold_out" | "closed";
+  visibility: "campus" | "open";
+  area_label: string;
+  bumped_at: string;
+  budget_cents: number | null;
+  items: { id: string; price_cents: number; status: "available" | "reserved" | "sold" }[];
+  listing_photos: { thumb_path: string; blurhash: string; position: number }[];
+};
+
+export const OWN_LISTING_SELECT =
+  "id, kind, title, status, visibility, area_label, bumped_at, budget_cents, items(id, price_cents, status), listing_photos(thumb_path, blurhash, position)";
+
+export function rowToCard(row: OwnListingRow): ListingCardData {
+  const available = row.items.filter((i) => i.status === "available");
+  const prices = (available.length ? available : row.items).map((i) => i.price_cents);
+  const cover = [...row.listing_photos].sort((a, b) => a.position - b.position)[0];
+  return {
+    kind: row.kind,
+    title: row.title,
+    priceCents: row.kind === "wanted" ? (row.budget_cents ?? 0) : prices.length ? Math.min(...prices) : 0,
+    itemCount: row.items.length,
+    areaLabel: row.area_label,
+    campusOnly: row.visibility === "campus",
+    bumpedAt: row.bumped_at,
+    image: cover ? { path: cover.thumb_path, blurhash: cover.blurhash } : null,
+  };
+}

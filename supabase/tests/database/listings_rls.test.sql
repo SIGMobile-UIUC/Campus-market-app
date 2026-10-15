@@ -1,7 +1,7 @@
 -- TST-1: who sees which listings, items, photos and favorites, and the listing-photos bucket (spec 4.6.5).
 begin;
 \ir _helpers.psql
-select plan(24);
+select plan(26);
 select tests.build_matrix();
 
 select tests.remember('campus', tests.create_listing_as('alpha1'));
@@ -69,6 +69,17 @@ select throws_ok(
   '42501', null, 'an invisible listing cannot be favorited'
 );
 select is_empty($$ select 1 from public.favorites $$, 'favorites are private');
+reset role;
+insert into public.favorites (user_id, listing_id) values (tests.user_id('general1'), tests.id('open'));
+select tests.login_as(tests.user_id('alpha1'));
+select is(
+  (select saves from public.favorite_counts(array[tests.id('campus'), tests.id('open')]) where listing_id = tests.id('campus')),
+  1, 'the seller sees how many saved their listing'
+);
+select tests.login_as(tests.user_id('alpha2'));
+select is_empty($$ select 1 from public.favorite_counts(array[tests.id('campus'), tests.id('open')]) $$,
+  'nobody else gets the counts');
+select tests.login_as(tests.user_id('beta1'));
 
 -- Photo storage: upload into your own folder; read follows the listing.
 reset role;

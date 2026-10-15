@@ -1,6 +1,6 @@
-import { useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Heart } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -103,19 +103,26 @@ export default function ListingPage() {
   const [listing, setListing] = useState<Listing | null | "failed" | undefined>(undefined);
   const [saved, setSaved] = useState(false);
 
-  const [reloads, setReloads] = useState(0);
+  // On focus, so coming back from the editor shows the saved changes.
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      void fetchListing(id).then((result) => {
+        if (!alive) return;
+        setListing(result.listing);
+        setSaved(result.saved);
+      });
+      return () => {
+        alive = false;
+      };
+    }, [id]),
+  );
 
-  useEffect(() => {
-    let alive = true;
+  const reload = () =>
     void fetchListing(id).then((result) => {
-      if (!alive) return;
       setListing(result.listing);
       setSaved(result.saved);
     });
-    return () => {
-      alive = false;
-    };
-  }, [id, reloads]);
 
   if (listing === undefined) {
     return (
@@ -131,7 +138,7 @@ export default function ListingPage() {
         <Header title="" />
         <View className="flex-1 items-center gap-2 bg-bg px-8 pt-16">
           <Text className="text-center text-base text-muted">{"We couldn't load this listing."}</Text>
-          <TextLink label="Try again" onPress={() => setReloads((n) => n + 1)} />
+          <TextLink label="Try again" onPress={reload} />
         </View>
       </>
     );
@@ -189,7 +196,7 @@ export default function ListingPage() {
         style={{ paddingBottom: Math.max(insets.bottom, 12) }}
       >
         {mine ? (
-          <OwnerActions listing={listing} onChanged={() => setReloads((n) => n + 1)} />
+          <OwnerActions listing={listing} onChanged={reload} />
         ) : (
           <>
             <Pressable
@@ -397,16 +404,27 @@ function OwnerActions({ listing, onChanged }: { listing: Listing; onChanged: () 
   return (
     <View className="flex-1 gap-1">
       <Text className="text-center text-[13px] text-muted">This is your listing.</Text>
-      {listing.status === "closed" ? (
-        <Button label="Reopen listing" onPress={() => void run("reopen_listing")} disabled={busy} />
-      ) : (
-        <Button
-          variant="secondary"
-          label="Close listing"
-          onPress={() => void run("close_listing")}
-          disabled={busy || listing.status !== "active"}
-        />
-      )}
+      <View className="flex-row gap-3">
+        <View className="flex-1">
+          <Button
+            variant="secondary"
+            label="Edit"
+            onPress={() => router.push({ pathname: "/edit/[id]", params: { id: listing.id } })}
+          />
+        </View>
+        <View className="flex-1">
+          {listing.status === "closed" ? (
+            <Button label="Reopen" onPress={() => void run("reopen_listing")} disabled={busy} />
+          ) : (
+            <Button
+              variant="secondary"
+              label="Close"
+              onPress={() => void run("close_listing")}
+              disabled={busy || listing.status !== "active"}
+            />
+          )}
+        </View>
+      </View>
     </View>
   );
 }

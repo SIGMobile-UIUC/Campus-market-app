@@ -2763,7 +2763,7 @@ Sign-in uses Supabase Auth directly (`signInWithOtp` with `shouldCreateUser: tru
 
 Feed and search rows carry `id, kind, title, price_cents (the item's price, a sale's lowest available price, or a wanted budget), item_count, status, campus_only, thumb_path, blurhash, owner { display_name, tier, campus_slug (null for general users) }, zone, area_label, distance_miles (P1), bumped_at`.
 
-Favorites use the `favorites` table directly (insert or delete own rows).
+Favorites use the `favorites` table directly (insert or delete own rows). Sellers read how many people saved their listings with `favorite_counts(listing_ids)` (security definer), which returns counts only for the caller's own listings (DSC-4).
 
 ### 6.5 Chat
 

@@ -18,6 +18,7 @@ import { leaveChat, setMuted, type Message, type Room } from "@/features/chat/ap
 import { useChats } from "@/features/chat/ChatProvider";
 import { MessageBubble, SafetyTips } from "@/features/chat/MessageBubble";
 import { useChatRoom, type Pending } from "@/features/chat/useChatRoom";
+import { TradeCard } from "@/features/trades/TradeCard";
 import { formatPrice } from "@/lib/format";
 import { pickPhotos } from "@/lib/media";
 import { Chip } from "@/ui/Chip";
@@ -34,16 +35,25 @@ const QUICK_REPLIES = ["Is this still available?", "When can you meet?"];
 
 type Entry = { key: string; message?: Message; pending?: Pending };
 
-// Chat room (spec 3.3): listing header, timeline, quick replies, photos, safety tips, leave and mute.
-// ponytail: trade steps show as one line until the trade cards and proposal sheet of APP-10.
+// Chat room (spec 3.3): listing header with Propose, timeline with trade cards, quick replies, photos,
+// safety tips, leave and mute.
 export default function ChatRoom() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session } = useAccount();
   const myId = session?.user.id ?? "";
-  const { room, messages, pending, partnerRead, hasOlder, loadOlder, send, retry, reloadRoom } = useChatRoom(
-    id,
-    myId,
-  );
+  const {
+    room,
+    messages,
+    pending,
+    partnerRead,
+    hasOlder,
+    trades,
+    loadOlder,
+    send,
+    retry,
+    reloadRoom,
+    reloadTrade,
+  } = useChatRoom(id, myId);
   const { refresh: refreshUnread } = useChats();
   const insets = useSafeAreaInsets();
   const keyboard = useKeyboardHeight();
@@ -79,6 +89,10 @@ export default function ChatRoom() {
     0,
     ...messages.filter((m) => m.sender_id === myId && m.seq <= partnerRead).map((m) => m.seq),
   );
+  // Each trade shows as a card at its latest step; earlier steps stay one line.
+  const latestStep = new Map(
+    messages.flatMap((m) => (m.meta?.trade_id ? [[m.meta.trade_id, m.seq] as const] : [])),
+  );
   const entries: Entry[] = [
     ...[...pending].reverse().map((p) => ({ key: p.client_id, pending: p })),
     ...[...messages].reverse().map((m) => ({ key: String(m.seq), message: m })),
@@ -103,7 +117,7 @@ export default function ChatRoom() {
         )}
         right={() => <MenuButton onPress={() => setMenu("chat")} />}
       />
-      <ListingStrip room={room} />
+      <ListingStrip room={room} canPropose={!room.closed_at} />
       <FlatList
         inverted
         data={entries}
@@ -123,6 +137,17 @@ export default function ChatRoom() {
             (!newer ||
               newer.sender_id !== m.sender_id ||
               new Date(newer.created_at).getTime() - new Date(m.created_at).getTime() > 5 * 60_000);
+          const tradeId = m?.meta?.trade_id;
+          if (m && tradeId && latestStep.get(tradeId) === m.seq && trades[tradeId]) {
+            return (
+              <TradeCard
+                trade={trades[tradeId]}
+                myId={myId}
+                partnerName={partnerName}
+                onChanged={() => reloadTrade(tradeId)}
+              />
+            );
+          }
           return (
             <MessageBubble
               message={m}
@@ -195,7 +220,7 @@ function MenuButton({ onPress }: { onPress: () => void }) {
 }
 
 // The listing this chat is about, with its price and status; tapping opens it.
-function ListingStrip({ room }: { room: Room }) {
+function ListingStrip({ room, canPropose }: { room: Room; canPropose: boolean }) {
   const listing = room.listing;
   if (!listing) {
     return (
@@ -248,6 +273,15 @@ function ListingStrip({ room }: { room: Room }) {
             {status}
           </Text>
         </View>
+      ) : null}
+      {canPropose && listing.status === "active" ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push({ pathname: "/propose/[chatId]", params: { chatId: room.id } })}
+          className="h-9 justify-center rounded-full bg-ink px-3.5"
+        >
+          <Text className="text-[13px] font-bold text-bg">Propose</Text>
+        </Pressable>
       ) : null}
     </Pressable>
   );

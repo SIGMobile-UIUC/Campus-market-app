@@ -62,6 +62,9 @@ function Shell() {
               <Stack.Screen name="favorites" />
               <Stack.Screen name="wanted" />
               <Stack.Screen name="chat/[id]" />
+              <Stack.Screen name="propose/[chatId]" />
+              <Stack.Screen name="trade/[id]" />
+              <Stack.Screen name="trades" />
               <Stack.Screen
                 name="sell"
                 options={{

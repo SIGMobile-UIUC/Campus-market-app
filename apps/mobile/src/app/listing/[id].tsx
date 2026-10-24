@@ -1,5 +1,5 @@
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { Heart } from "lucide-react-native";
+import { Check, Heart } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
@@ -104,6 +104,8 @@ export default function ListingPage() {
   const [listing, setListing] = useState<Listing | null | "failed" | undefined>(undefined);
   const [saved, setSaved] = useState(false);
   const [opening, setOpening] = useState(false);
+  // Items picked on a move-out sale carry over to the proposal sheet (APP-10).
+  const [picked, setPicked] = useState<string[]>([]);
 
   // On focus, so coming back from the editor shows the saved changes.
   useFocusEffect(
@@ -178,7 +180,17 @@ export default function ListingPage() {
         <View className="gap-5 px-5 pt-4">
           <Seller listing={listing} />
           <Summary listing={listing} />
-          {listing.kind === "bundle" ? <SaleItems listing={listing} /> : null}
+          {listing.kind === "bundle" ? (
+            <SaleItems
+              listing={listing}
+              picked={mine ? null : picked}
+              onToggle={(itemId) =>
+                setPicked((current) =>
+                  current.includes(itemId) ? current.filter((i) => i !== itemId) : [...current, itemId],
+                )
+              }
+            />
+          ) : null}
           {listing.description ? (
             <Text className="text-base leading-6 text-ink">{listing.description}</Text>
           ) : null}
@@ -213,11 +225,17 @@ export default function ListingPage() {
             <View className="flex-1">
               {/* ponytail: "I have this" opens the chat until the offer sheet of APP-18. */}
               <Button
-                label={listing.kind === "wanted" ? "I have this" : "Chat with seller"}
+                label={
+                  listing.kind === "wanted"
+                    ? "I have this"
+                    : picked.length
+                      ? `Ask about ${picked.length} ${picked.length === 1 ? "item" : "items"}`
+                      : "Chat with seller"
+                }
                 disabled={opening}
                 onPress={() => {
                   setOpening(true);
-                  void openChat(listing.id).finally(() => setOpening(false));
+                  void openChat(listing.id, picked).finally(() => setOpening(false));
                 }}
               />
             </View>
@@ -356,8 +374,17 @@ function StatusBadge({ label }: { label: string }) {
   );
 }
 
-// ponytail: choosing items and "Ask about N items" come with trade proposals (APP-16 with M3).
-function SaleItems({ listing }: { listing: Listing }) {
+// Buyers tick available items to ask about them together; picked is null for the owner.
+function SaleItems({
+  listing,
+  picked,
+  onToggle,
+}: {
+  listing: Listing;
+  picked: string[] | null;
+  onToggle: (itemId: string) => void;
+}) {
+  const { colors } = useTheme();
   const items = [...listing.items].sort((a, b) => a.position - b.position);
   return (
     <View className="gap-1">
@@ -368,11 +395,24 @@ function SaleItems({ listing }: { listing: Listing }) {
         const cover = listing.listing_photos
           .filter((p) => p.item_id === item.id)
           .sort((a, b) => a.position - b.position)[0];
+        const selectable = picked !== null && item.status === "available";
+        const checked = !!picked?.includes(item.id);
         return (
-          <View
+          <Pressable
             key={item.id}
+            accessibilityRole={selectable ? "checkbox" : undefined}
+            accessibilityState={selectable ? { checked } : undefined}
+            disabled={!selectable}
+            onPress={() => onToggle(item.id)}
             className={`flex-row items-center gap-3 py-2 ${item.status === "available" ? "" : "opacity-50"}`}
           >
+            {selectable ? (
+              <View
+                className={`h-6 w-6 items-center justify-center rounded-md ${checked ? "bg-ink" : "border border-line"}`}
+              >
+                {checked ? <Check size={16} color={colors.bg} strokeWidth={3} /> : null}
+              </View>
+            ) : null}
             {cover ? (
               <Photo
                 path={cover.thumb_path}
@@ -391,7 +431,7 @@ function SaleItems({ listing }: { listing: Listing }) {
             ) : (
               <StatusBadge label={item.status === "reserved" ? "Reserved" : "Sold"} />
             )}
-          </View>
+          </Pressable>
         );
       })}
     </View>

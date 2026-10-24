@@ -758,7 +758,7 @@ Expo Router groups: `(auth)` for welcome, email and code (signed out), `(onboard
 | | Preview and post | Card as buyers will see it | P0 |
 | Chats | Chat list | Listing thumbnail, partner nickname and grade, last message, unread badge, active-trade chip; swipe or "..." to leave | P0 |
 | | Chat room | Listing header, bubbles, quick replies, photo button, safety banner, trade cards; "Leave chat" in the "..." menu with a confirmation that explains the 7-day deletion | P0 |
-| Trades | Proposal sheet | Items to include (bundles), total price, meetup time and spot (map of campus spots) or a typed place | P0 |
+| Trades | Proposal sheet | Items to include (bundles), total price, meetup time (the next 7 days, on the half hour from 8 AM to 9:30 PM) and spot (map of campus spots) or a typed place | P0 |
 | | Trade details | Status timeline, items and price, meetup time and spot with "I'm here" (P1), Confirm, Cancel, Report a problem | P0 |
 | | My trades | Active, Completed, Closed tabs | P0 |
 | Disputes | Open dispute | Type, statement, evidence photos from the in-app camera | P0 |

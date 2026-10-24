@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, AppState } from "react-native";
 
 import { errorMessage } from "@/lib/errors";
+import { fetchTrades, type Trade } from "@/features/trades/api";
 import { uploadChatPhoto } from "@/lib/media";
 import { supabase } from "@/lib/supabase";
 
@@ -33,12 +34,22 @@ export function useChatRoom(chatId: string, myId: string) {
   const [pending, setPending] = useState<Pending[]>([]);
   const [partnerRead, setPartnerRead] = useState(0);
   const [hasOlder, setHasOlder] = useState(false);
+  const [trades, setTrades] = useState<Record<string, Trade>>({});
   const lastSeq = useRef(0);
   const loaded = useRef(false);
+
+  // Trade cards show the trade's current state; every trade event in the timeline reloads its trade.
+  const loadTrades = useCallback((ids: string[]) => {
+    if (!ids.length) return;
+    void fetchTrades(ids).then((rows) => {
+      if (rows) setTrades((current) => ({ ...current, ...Object.fromEntries(rows.map((t) => [t.id, t])) }));
+    });
+  }, []);
 
   const merge = useCallback(
     (incoming: Message[]) => {
       if (!incoming.length) return;
+      loadTrades([...new Set(incoming.flatMap((m) => (m.meta?.trade_id ? [m.meta.trade_id] : [])))]);
       lastSeq.current = Math.max(lastSeq.current, ...incoming.map((m) => m.seq));
       setMessages((current) => {
         const bySeq = new Map(current.map((m) => [m.seq, m]));
@@ -51,7 +62,7 @@ export function useChatRoom(chatId: string, myId: string) {
       const theirs = incoming.filter((m) => m.sender_id && m.sender_id !== myId).map((m) => m.seq);
       if (theirs.length) setPartnerRead((seq) => Math.max(seq, ...theirs));
     },
-    [myId],
+    [myId, loadTrades],
   );
 
   const applyRoom = useCallback(
@@ -204,9 +215,11 @@ export function useChatRoom(chatId: string, myId: string) {
     pending,
     partnerRead,
     hasOlder,
+    trades,
     loadOlder,
     send,
     retry: deliver,
     reloadRoom: loadRoom,
+    reloadTrade: (id: string) => loadTrades([id]),
   };
 }

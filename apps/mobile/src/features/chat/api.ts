@@ -140,8 +140,9 @@ export function leaveChat(chatId: string): Promise<boolean> {
   );
 }
 
-// The chat for this listing and the caller, created on first use (CHT-1).
-export async function openChat(listingId: string) {
+// The chat for this listing and the caller, created on first use (CHT-1). With items picked on a
+// move-out sale, the proposal sheet opens over the chat with them selected.
+export async function openChat(listingId: string, items: string[] = []) {
   const { data, error } = await supabase.rpc("get_or_create_chat", { p_listing_id: listingId });
   if (error) {
     Alert.alert(
@@ -150,7 +151,10 @@ export async function openChat(listingId: string) {
     );
     return;
   }
-  router.push({ pathname: "/chat/[id]", params: { id: (data as { chat_id: string }).chat_id } });
+  const chatId = (data as { chat_id: string }).chat_id;
+  router.push({ pathname: "/chat/[id]", params: { id: chatId } });
+  if (items.length)
+    router.push({ pathname: "/propose/[chatId]", params: { chatId, items: items.join(",") } });
 }
 
 const TRADE_TEXT: Record<string, string> = {

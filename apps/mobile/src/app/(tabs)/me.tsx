@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from "expo-router";
-import { ChevronRight, Ellipsis, Heart } from "lucide-react-native";
+import { ChevronRight, Ellipsis, Handshake, Heart } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -111,8 +111,17 @@ export default function Me() {
 
       <Pressable
         accessibilityRole="link"
-        onPress={() => router.push("/favorites")}
+        onPress={() => router.push("/trades")}
         className="mx-5 mt-6 h-14 flex-row items-center gap-3 rounded-2xl bg-surface px-4"
+      >
+        <Handshake size={20} color={colors.ink} />
+        <Text className="flex-1 text-base text-ink">My trades</Text>
+        <ChevronRight size={18} color={colors.muted} />
+      </Pressable>
+      <Pressable
+        accessibilityRole="link"
+        onPress={() => router.push("/favorites")}
+        className="mx-5 mt-3 h-14 flex-row items-center gap-3 rounded-2xl bg-surface px-4"
       >
         <Heart size={20} color={colors.ink} />
         <Text className="flex-1 text-base text-ink">Favorites</Text>

@@ -3,6 +3,8 @@ begin;
 \ir _helpers.psql
 select plan(24);
 select tests.build_matrix();
+-- Open feeds span every school, so listings already in a local database would show up; hide them.
+update public.listings set hidden = true;
 
 -- Listing ids, in result order, for a search as the current user.
 create function tests.found(p_q text, p_scope text, p_filters jsonb default '{}', p_sort text default 'newest',

@@ -1266,8 +1266,8 @@ Photos are almost all of the stored bytes and the egress. Estimates for the beta
 ### 4.9 Chat and real-time
 
 - **Chats are role-neutral:** `(listing_id, member_id)` is unique among open chats; `owner_id` is the listing owner. `get_or_create_chat` uses `insert ... on conflict do nothing` and then selects, so double taps return one chat. When the previous chat on the pair was closed, it creates a new one.
-- **Transport:** private Broadcast channels `chat:{chat_id}` and `user:{user_id}`. A trigger on `messages` calls `realtime.broadcast_changes` for the chat topic and sends a badge event to both users' topics. Postgres Changes is not used because it processes changes on one thread.
-- **Authorization:** a policy on `realtime.messages` allows `select` when `private.can_join_topic(realtime.topic())` is true for the caller.
+- **Transport:** private Broadcast channels `chat:{chat_id}` and `user:{user_id}`. A trigger on `messages` calls `realtime.broadcast_changes` for the chat topic (event `message`, the row in `payload.record`) and sends a `badge` event (`{chat_id, seq}`) to both users' topics. `mark_read` sends a `read` event (`{user_id, seq}`) to the chat topic when the marker moves, for read receipts. Postgres Changes is not used because it processes changes on one thread.
+- **Authorization:** a policy on `realtime.messages` allows `select` when `private.can_join_topic(realtime.topic())` is true for the caller: their own user topic, or a chat they are a party to. There is no `insert` policy, so clients cannot broadcast; every message goes through `send_message`.
 - **Ordering:** `send_message` runs `update chats set last_seq = last_seq + 1 where id = $1 returning last_seq` and inserts with that `seq`. The row lock lasts until commit, so sequence order equals commit order within a chat.
 - **Gap fill:** on reconnect, on returning to the foreground, or when a broadcast arrives with `seq > last_seq + 1`, the app calls `get_messages(chat_id, after_seq)`.
 - **Idempotent sends:** `unique(chat_id, client_id)`; a retry returns the existing row.
@@ -2769,15 +2769,15 @@ Favorites use the `favorites` table directly (insert or delete own rows). Seller
 
 | Function | Params | Returns | Errors |
 | --- | --- | --- | --- |
-| `get_or_create_chat(listing_id)` | uuid | `{ chat_id, created }` (a new chat when the previous one was closed) | `NOT_FOUND`, `SELF_ACTION`, `BLOCKED`, `RESTRICTED` |
+| `get_or_create_chat(listing_id)` | uuid | `{ chat_id, created }` (a new chat when the previous one was closed) | `NOT_FOUND`, `SELF_ACTION`, `BLOCKED`, `INVALID_STATE` (no new chat on a listing that is not active), `RESTRICTED` |
 | `send_message(chat_id, kind, body, image_path, client_id)` | uuid, `text` or `image`, text, text, uuid | `{ seq, created_at }` | `NOT_PARTY`, `INVALID_STATE` (chat closed), `BLOCKED`, `RATE_LIMITED` (10 per 10 seconds), `PROHIBITED_CONTENT`, `VALIDATION_FAILED`, `RESTRICTED` |
 | `leave_chat(chat_id)` | uuid | `{ closed_at, purge_after }` (`purge_after` set when both sides have left) | `NOT_PARTY`, `INVALID_STATE` (a trade in the chat is proposed, accepted or disputed) |
-| `get_messages(chat_id, after_seq, before_seq, limit)` (invoker) | uuid, bigint, bigint, int (max 100) | messages ordered by `seq` | `NOT_FOUND` |
+| `get_messages(chat_id, after_seq, before_seq, limit)` (invoker) | uuid, bigint, bigint, int (default 50, max 100) | messages ordered by `seq`: the oldest after `after_seq` (gap fill), otherwise the latest before `before_seq` (history) | `NOT_FOUND` |
 | `mark_read(chat_id, seq)` | uuid, bigint | `{ last_read_seq }` | `NOT_PARTY` |
 | `set_chat_muted(chat_id, muted)` | uuid, bool | none | `NOT_PARTY` |
 | `unread_summary()` (invoker) | none | `{ total, chats[{chat_id, unread}] }` | |
 
-`send_message` also sets the sender's `last_read_seq` to the new `seq`.
+`send_message` also sets the sender's `last_read_seq` to the new `seq`. Photo messages are uploaded first to the private `chat-images` bucket under `{chat_id}/{user_id}/`; both parties can read them.
 
 ### 6.6 Trades
 

@@ -105,17 +105,17 @@ Done when: a student posts with photos in under a minute, students at another ca
 
 ### M3 · Chat and trades (weeks 5 to 7, Nov 2 to 22)
 
-| ID | Task | Area |
-| --- | --- | --- |
-| DB-8 | `chats`, `messages`, `chat_reads`; `get_or_create_chat`, `send_message` with per-chat sequence, `mark_read`, `leave_chat`; broadcast trigger and `realtime.messages` policy | Backend |
-| DB-9 | `trades`, `trade_items`, `trade_confirmations`; propose with several items of a bundle or an offer on a wanted request, accept (reserve all or none), decline, withdraw, cancel with late-cancel penalty, confirm and completion (counted flags, point awards) | Backend |
-| DB-10 | `trades-advance` job: proposal expiry, auto-complete after 72 hours, expiry after 7 days | Backend |
-| FN-1 | `push-dispatch` and `push-receipts`; push token registration; webhooks after commit | Backend |
-| APP-9 | Chat list and room: realtime, gap fill, read state, quick replies, photo messages, safety banner, leave chat | App |
-| APP-10 | Proposal sheet (items picked from a bundle carry over from the move-out sale page), trade cards with current actions, trade details, My trades | App |
-| APP-18 | Offer sheet from "I have this": photos, item, price against the budget, condition; sending opens a chat with a proposal | App |
-| APP-11 | Review sheet after completion | App |
-| TST-2 | Race tests: double reservation, confirm against the job, dispute against the job | Backend |
+| ID | Task | Area | Status |
+| --- | --- | --- | --- |
+| DB-8 | `chats`, `messages`, `chat_reads`; `get_or_create_chat`, `send_message` with per-chat sequence, `mark_read`, `leave_chat`; broadcast trigger and `realtime.messages` policy | Backend | Done |
+| DB-9 | `trades`, `trade_items`, `trade_confirmations`; propose with several items of a bundle or an offer on a wanted request, accept (reserve all or none), decline, withdraw, cancel with late-cancel penalty, confirm and completion (counted flags, point awards) | Backend | |
+| DB-10 | `trades-advance` job: proposal expiry, auto-complete after 72 hours, expiry after 7 days | Backend | |
+| FN-1 | `push-dispatch` and `push-receipts`; push token registration; webhooks after commit | Backend | |
+| APP-9 | Chat list and room: realtime, gap fill, read state, quick replies, photo messages, safety banner, leave chat | App | |
+| APP-10 | Proposal sheet (items picked from a bundle carry over from the move-out sale page), trade cards with current actions, trade details, My trades | App | |
+| APP-18 | Offer sheet from "I have this": photos, item, price against the budget, condition; sending opens a chat with a proposal | App | |
+| APP-11 | Review sheet after completion | App | |
+| TST-2 | Race tests: double reservation, confirm against the job, dispute against the job | Backend | |
 
 Done when: two phones complete a trade end to end on staging, with push notifications, and the race tests pass.
 

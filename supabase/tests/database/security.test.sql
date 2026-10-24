@@ -19,7 +19,8 @@ select is_empty(
 select set_eq(
   $$ select p.proname::text from pg_proc p where p.pronamespace = 'public'::regnamespace and p.prosecdef $$,
   array['get_my_account', 'complete_onboarding', 'create_listing', 'update_listing', 'close_listing',
-        'reopen_listing', 'delete_listing', 'mark_sold_elsewhere', 'favorite_counts'],
+        'reopen_listing', 'delete_listing', 'mark_sold_elsewhere', 'favorite_counts',
+        'get_or_create_chat', 'send_message', 'mark_read', 'set_chat_muted', 'leave_chat'],
   'security definer functions in public match the allowlist'
 );
 
@@ -43,7 +44,7 @@ select set_eq(
   $$ select p.proname::text from pg_proc p
      where p.pronamespace = 'private'::regnamespace and p.prokind = 'f'
        and has_function_privilege('authenticated', p.oid, 'execute') $$,
-  array['my_live_campus_id', 'my_block_list'],
+  array['my_live_campus_id', 'my_block_list', 'is_chat_party', 'can_join_topic'],
   'authenticated can execute only the allowlisted private helpers'
 );
 

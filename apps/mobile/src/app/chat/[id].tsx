@@ -277,7 +277,14 @@ function ListingStrip({ room, canPropose }: { room: Room; canPropose: boolean })
       {canPropose && listing.status === "active" ? (
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.push({ pathname: "/propose/[chatId]", params: { chatId: room.id } })}
+          onPress={() =>
+            listing.kind === "wanted"
+              ? router.push({
+                  pathname: "/offer/[listingId]",
+                  params: { listingId: listing.id, chatId: room.id },
+                })
+              : router.push({ pathname: "/propose/[chatId]", params: { chatId: room.id } })
+          }
           className="h-9 justify-center rounded-full bg-ink px-3.5"
         >
           <Text className="text-[13px] font-bold text-bg">Propose</Text>

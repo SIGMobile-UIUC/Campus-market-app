@@ -223,7 +223,6 @@ export default function ListingPage() {
               <SaveIcon saved={saved} />
             </Pressable>
             <View className="flex-1">
-              {/* ponytail: "I have this" opens the chat until the offer sheet of APP-18. */}
               <Button
                 label={
                   listing.kind === "wanted"
@@ -234,6 +233,10 @@ export default function ListingPage() {
                 }
                 disabled={opening}
                 onPress={() => {
+                  if (listing.kind === "wanted") {
+                    router.push({ pathname: "/offer/[listingId]", params: { listingId: listing.id } });
+                    return;
+                  }
                   setOpening(true);
                   void openChat(listing.id, picked).finally(() => setOpening(false));
                 }}

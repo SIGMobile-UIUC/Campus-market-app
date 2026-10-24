@@ -3,11 +3,13 @@ import { Bell, Globe, Search } from "lucide-react-native";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useAccount } from "@/features/account/account";
 import { MODES } from "@/features/catalog/catalog";
 import { categoryIcon, useCategories } from "@/features/catalog/categories";
 import { ResultsGrid } from "@/features/listings/ResultsGrid";
 import { MarketChips, useScope } from "@/features/listings/Toolbar";
 import { toCard, type Filters } from "@/features/listings/types";
+import { WantedCard } from "@/features/listings/WantedCard";
 import { useListings } from "@/features/listings/useListings";
 import { ListingCard } from "@/ui/ListingCard";
 import { CategoryTile, ModeTile } from "@/ui/Tiles";
@@ -75,7 +77,12 @@ export default function Home() {
                   Icon={mode.Icon}
                   tint={mode.tint}
                   ink={mode.ink}
-                  onPress={() => router.push({ pathname: "/browse", params: { mode: mode.id } })}
+                  // Wanted has its own board; the other modes are filtered feeds.
+                  onPress={() =>
+                    mode.id === "wanted"
+                      ? router.push("/wanted")
+                      : router.push({ pathname: "/browse", params: { mode: mode.id } })
+                  }
                 />
               ))}
             </View>
@@ -109,7 +116,7 @@ export default function Home() {
             </View>
 
             <Module title="Move-out sales" scope={scope} filters={{ mode: "move_out" }} />
-            <Module title="Students are looking for" scope={scope} filters={{ mode: "wanted" }} />
+            <WantedModule scope={scope} />
 
             <Text accessibilityRole="header" className="px-5 pb-3 pt-6 text-lg font-extrabold text-ink">
               Just listed
@@ -122,6 +129,36 @@ export default function Home() {
 }
 
 // A horizontal row of up to six listings with "See all"; hidden when empty.
+// The newest requests as cards, with "See all" opening the Wanted board; hidden when empty.
+function WantedModule({ scope }: { scope: "campus" | "open" }) {
+  const { account } = useAccount();
+  const { rows } = useListings({ scope, filters: { mode: "wanted" }, limit: 6 });
+  if (!rows.length) return null;
+  return (
+    <View className="pt-6">
+      <View className="flex-row items-baseline justify-between px-5 pb-2">
+        <Text accessibilityRole="header" className="text-lg font-extrabold text-ink">
+          Students are looking for
+        </Text>
+        <Pressable accessibilityRole="link" onPress={() => router.push("/wanted")}>
+          <Text className="text-[13px] text-ink">See all</Text>
+        </Pressable>
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 12, paddingHorizontal: 20 }}
+      >
+        {rows.map((row) => (
+          <View key={row.id} style={{ width: 280 }}>
+            <WantedCard row={row} mine={row.owner.display_name === account?.display_name} />
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
 function Module({ title, scope, filters }: { title: string; scope: "campus" | "open"; filters: Filters }) {
   const { rows } = useListings({ scope, filters, limit: 6 });
   if (!rows.length) return null;

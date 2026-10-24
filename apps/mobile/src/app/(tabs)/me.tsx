@@ -11,6 +11,7 @@ import { useMyListings, type MyListing } from "@/features/listings/useMyListings
 import { errorMessage } from "@/lib/errors";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/ui/Button";
+import { GradeBadge } from "@/ui/GradeBadge";
 import { ListingCard } from "@/ui/ListingCard";
 import { Menu, type MenuOption } from "@/ui/Menu";
 import { useTheme } from "@/ui/theme";
@@ -48,9 +49,13 @@ export default function Me() {
       </Text>
       <View className="mx-5 flex-row items-center gap-4 rounded-2xl bg-primary p-5">
         <Avatar loadout={account?.avatar ?? {}} size={64} />
-        <View className="flex-1">
-          <Text className="text-base font-extrabold text-on-primary">{campus?.name ?? "Open market"}</Text>
-          <Text className="mt-1 text-sm text-on-primary">{account?.email}</Text>
+        <View className="flex-1 gap-1">
+          <View className="flex-row items-center gap-2">
+            <Text className="text-lg font-extrabold text-on-primary">{account?.display_name}</Text>
+            {account ? <GradeBadge tier={account.tier} /> : null}
+          </View>
+          <Text className="text-sm text-on-primary">{campus?.name ?? "Open market"}</Text>
+          <Text className="text-[13px] text-on-primary opacity-80">{account?.email}</Text>
         </View>
       </View>
 

@@ -9,6 +9,8 @@ import { supabase } from "@/lib/supabase";
 export type Account = {
   email: string;
   campus: CampusRow | null;
+  display_name: string | null;
+  tier: string;
   status: "active" | "suspended" | "banned" | "deleted";
   onboarded: boolean;
   avatar: Loadout;

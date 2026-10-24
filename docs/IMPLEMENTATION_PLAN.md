@@ -98,7 +98,7 @@ Done when: a UIUC email lands in the Illinois market with Illinois colors, a Gma
 | APP-8 | Listing page, favorites, similar items, locked preview for campus-only links | App | |
 | APP-20 | My listings on the Me tab: Selling, Reserved and Sold tabs; edit, close, reopen and mark sold elsewhere | App | |
 | APP-16 | Move-out sale page (item rows, status, multi-select) and the Home module | App | Item rows with status on the listing page; choosing items comes with proposals (M3) |
-| APP-17 | Wanted board, request page and the Home module | App | |
+| APP-17 | Wanted board, request page and the Home module | App | Board, request cards and Home module done; I have this opens the offer sheet with M3 (APP-18), offer counts with offers |
 | TST-1 | pgTAP: listing visibility for every RLS matrix user; storage policies on `listing-photos` | Backend | Done |
 
 Done when: a student posts with photos in under a minute, students at another campus and general users cannot see it unless it is in the open market, and the RLS tests prove it.

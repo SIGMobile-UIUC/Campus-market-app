@@ -2737,7 +2737,7 @@ PostgREST returns HTTP 400 with `{ "code": "P0001", "message": "ITEM_UNAVAILABLE
 
 | Function | Params | Returns | Errors |
 | --- | --- | --- | --- |
-| `get_my_account()` | none | `{ email, secondary_email, secondary_verified, campus, status, onboarded, avatar ({ slot: asset_key }), created_at }`; works for suspended users | `AUTH_REQUIRED` |
+| `get_my_account()` | none | `{ email, secondary_email, secondary_verified, campus, display_name, tier, status, onboarded, avatar ({ slot: asset_key }), created_at }`; works for suspended users | `AUTH_REQUIRED` |
 | `complete_onboarding(display_name, starter_avatar, accept_terms_version, analytics, personalized_ads, zip, timezone)` | text, text (a look id from `app_config.starter_avatars`), text, bool, bool, text (general users), text | profile | `VALIDATION_FAILED` (including an unknown look), `ALREADY_EXISTS` (nickname taken, ignoring case), `PROHIBITED_CONTENT` (including the reserved `deleted_` prefix), `ZIP_REQUIRED`, `INVALID_STATE` (already onboarded) |
 | `change_display_name(display_name, request_id)` | text, uuid | `{ display_name, points_spent, balance }` | `COOLDOWN_ACTIVE`, `INSUFFICIENT_POINTS`, `ALREADY_EXISTS`, `PROHIBITED_CONTENT` |
 | `set_consent(analytics, personalized_ads, policy_version)` | bool, bool, text | consent | `VALIDATION_FAILED` |

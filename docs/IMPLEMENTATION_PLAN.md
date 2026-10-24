@@ -97,7 +97,7 @@ Done when: a UIUC email lands in the Illinois market with Illinois colors, a Gma
 | APP-7 | Home (modes, Picked for you, first nine categories plus More, Hot this week), Categories tab with all 21 categories and their subcategories in two panes (spec 1.7.5), Category results, Search | App | |
 | APP-8 | Listing page, favorites, similar items, locked preview for campus-only links | App | |
 | APP-20 | My listings on the Me tab: Selling, Reserved and Sold tabs; edit, close, reopen and mark sold elsewhere | App | |
-| APP-16 | Move-out sale page (item rows, status, multi-select) and the Home module | App | Item rows with status on the listing page; choosing items comes with proposals (M3) |
+| APP-16 | Move-out sale page (item rows, status, multi-select) and the Home module | App | Item rows with status and multi-select on the listing page ("Ask about N items" opens the proposal sheet) |
 | APP-17 | Wanted board, request page and the Home module | App | Board, request cards and Home module done; I have this opens the offer sheet with M3 (APP-18), offer counts with offers |
 | TST-1 | pgTAP: listing visibility for every RLS matrix user; storage policies on `listing-photos` | Backend | Done |
 
@@ -108,11 +108,11 @@ Done when: a student posts with photos in under a minute, students at another ca
 | ID | Task | Area | Status |
 | --- | --- | --- | --- |
 | DB-8 | `chats`, `messages`, `chat_reads`; `get_or_create_chat`, `send_message` with per-chat sequence, `mark_read`, `leave_chat`; broadcast trigger and `realtime.messages` policy | Backend | Done |
-| DB-9 | `trades`, `trade_items`, `trade_confirmations`; propose with several items of a bundle or an offer on a wanted request, accept (reserve all or none), decline, withdraw, cancel with late-cancel penalty, confirm and completion (counted flags, point awards) | Backend || Done; point awards with DB-12, late-cancel penalty and rank marking with DB-11 |
-| DB-10 | `trades-advance` job: proposal expiry, auto-complete after 72 hours, expiry after 7 days | Backend || Done; dispute deadlines join with DB-14 |
+| DB-9 | `trades`, `trade_items`, `trade_confirmations`; propose with several items of a bundle or an offer on a wanted request, accept (reserve all or none), decline, withdraw, cancel with late-cancel penalty, confirm and completion (counted flags, point awards) | Backend | Done; point awards with DB-12, late-cancel penalty and rank marking with DB-11 |
+| DB-10 | `trades-advance` job: proposal expiry, auto-complete after 72 hours, expiry after 7 days | Backend | Done; dispute deadlines join with DB-14 |
 | FN-1 | `push-dispatch` and `push-receipts`; push token registration; webhooks after commit | Backend | |
-| APP-9 | Chat list and room: realtime, gap fill, read state, quick replies, photo messages, safety banner, leave chat | App || Done; trade steps show as one line until the cards of APP-10 |
-| APP-10 | Proposal sheet (items picked from a bundle carry over from the move-out sale page), trade cards with current actions, trade details, My trades | App | |
+| APP-9 | Chat list and room: realtime, gap fill, read state, quick replies, photo messages, safety banner, leave chat | App | Done; trade steps show as one line until the cards of APP-10 |
+| APP-10 | Proposal sheet (items picked from a bundle carry over from the move-out sale page), trade cards with current actions, trade details, My trades | App || Done; points toast and review sheet come with DB-12 and APP-11 |
 | APP-18 | Offer sheet from "I have this": photos, item, price against the budget, condition; sending opens a chat with a proposal | App | |
 | APP-11 | Review sheet after completion | App | |
 | TST-2 | Race tests: double reservation, confirm against the job, dispute against the job | Backend | |

@@ -108,7 +108,7 @@ Done when: a student posts with photos in under a minute, students at another ca
 | ID | Task | Area | Status |
 | --- | --- | --- | --- |
 | DB-8 | `chats`, `messages`, `chat_reads`; `get_or_create_chat`, `send_message` with per-chat sequence, `mark_read`, `leave_chat`; broadcast trigger and `realtime.messages` policy | Backend | Done |
-| DB-9 | `trades`, `trade_items`, `trade_confirmations`; propose with several items of a bundle or an offer on a wanted request, accept (reserve all or none), decline, withdraw, cancel with late-cancel penalty, confirm and completion (counted flags, point awards) | Backend | |
+| DB-9 | `trades`, `trade_items`, `trade_confirmations`; propose with several items of a bundle or an offer on a wanted request, accept (reserve all or none), decline, withdraw, cancel with late-cancel penalty, confirm and completion (counted flags, point awards) | Backend || Done; point awards with DB-12, late-cancel penalty and rank marking with DB-11 |
 | DB-10 | `trades-advance` job: proposal expiry, auto-complete after 72 hours, expiry after 7 days | Backend | |
 | FN-1 | `push-dispatch` and `push-receipts`; push token registration; webhooks after commit | Backend | |
 | APP-9 | Chat list and room: realtime, gap fill, read state, quick replies, photo messages, safety banner, leave chat | App | |

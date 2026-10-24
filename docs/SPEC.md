@@ -2186,7 +2186,7 @@ create table public.trades (
   buyer_id      uuid not null references public.profiles,
   proposed_by   uuid not null references public.profiles,
   status        public.trade_status not null default 'proposed',
-  total_cents   integer not null check (total_cents >= 0),
+  total_cents   integer not null check (total_cents between 0 and 10000000),
   meet_at       timestamptz,
   spot_id       uuid references public.meetup_spots on delete set null,
   place_text    text check (char_length(place_text) <= 120),
@@ -2196,12 +2196,13 @@ create table public.trades (
   closed_at     timestamptz,
   next_check_at timestamptz,                           -- next automatic transition
   cancelled_by  uuid references public.profiles,
-  cancel_reason text,
+  cancel_reason text check (char_length(cancel_reason) <= 500),
   counted_seller boolean not null default false,       -- set at completion (see section 4.10.4)
   counted_buyer  boolean not null default false,
   check (seller_id <> buyer_id),
   check (proposed_by in (seller_id, buyer_id)),
-  check (meet_at is not null and (spot_id is not null or place_text is not null))
+  -- propose_trade requires a spot or a place; a deleted spot (set null) must not break the row
+  check (meet_at is not null)
 );
 
 alter table public.items
@@ -2211,8 +2212,8 @@ create table public.trade_items (
   trade_id    uuid not null references public.trades on delete cascade,
   line        smallint not null,
   item_id     uuid references public.items on delete set null,   -- null for wanted-listing offers
-  name        text not null,
-  price_cents integer not null check (price_cents >= 0),
+  name        text not null check (char_length(name) between 1 and 80),
+  price_cents integer not null check (price_cents between 0 and 10000000),
   primary key (trade_id, line)
 );
 
@@ -2783,15 +2784,15 @@ Favorites use the `favorites` table directly (insert or delete own rows). Seller
 
 | Function | Params | Returns | Errors |
 | --- | --- | --- | --- |
-| `propose_trade(chat_id, proposal, request_id)` | uuid; jsonb: `role` (`seller` or `buyer`, from the caller's side), `item_ids[]` or `offer_items[{name, price_cents}]` (wanted listings), `total_cents`, `meet_at`, `spot_id`, `place_text`; uuid | trade | `NOT_PARTY`, `ITEM_UNAVAILABLE`, `VALIDATION_FAILED` (no time or place), `BLOCKED`, `RESTRICTED` |
-| `accept_trade(trade_id)` | uuid | trade with items reserved | `NOT_PARTY`, `INVALID_STATE`, `ITEM_UNAVAILABLE` (nothing reserved) |
+| `propose_trade(chat_id, proposal, request_id)` | uuid; jsonb: `role` (`seller` or `buyer`, from the caller's side), `item_ids[]` or `offer_items[{name, price_cents}]` (wanted listings), `total_cents`, `meet_at`, `spot_id`, `place_text`; uuid | trade | `NOT_PARTY`, `INVALID_STATE` (chat or listing closed), `ITEM_UNAVAILABLE`, `VALIDATION_FAILED` (no future time, no spot of the listing's campus or typed place), `PROHIBITED_CONTENT`, `BLOCKED`, `RESTRICTED` |
+| `accept_trade(trade_id)` | uuid | trade with items reserved | `NOT_PARTY`, `INVALID_STATE` (own proposal, older than 48 hours, or listing closed), `ITEM_UNAVAILABLE` (nothing reserved) |
 | `decline_trade(trade_id)` | uuid | trade | `NOT_PARTY`, `INVALID_STATE` |
 | `withdraw_trade(trade_id)` | uuid | trade | `FORBIDDEN` (not the proposer), `INVALID_STATE` |
-| `cancel_trade(trade_id, reason)` | uuid, text | `{ trade, late_cancel_penalty }` | `NOT_PARTY`, `INVALID_STATE` |
-| `confirm_trade(trade_id)` | uuid | `{ trade, completed, points_awarded }` | `NOT_PARTY`, `INVALID_STATE`, `WINDOW_CLOSED` |
+| `cancel_trade(trade_id, reason)` | uuid, text (1 to 500 characters) | `{ trade, late_cancel_penalty }` | `NOT_PARTY`, `INVALID_STATE`, `VALIDATION_FAILED` |
+| `confirm_trade(trade_id)` | uuid | `{ trade, completed, points_awarded }` | `NOT_PARTY`, `INVALID_STATE`, `WINDOW_CLOSED` (before 30 minutes ahead of `meet_at` or after 7 days past it) |
 | `my_trades(status_group, cursor, limit)` (invoker) | `active` / `completed` / `closed`, jsonb, int | `{ rows[], next_cursor }` | |
 
-`confirm_trade` records the caller's confirmation and completes the trade when both have confirmed.
+`confirm_trade` records the caller's confirmation and completes the trade when both have confirmed. Repeated taps on accept, decline, withdraw, cancel and confirm return the current trade instead of an error. Every transition adds a system message with `meta: {event: 'trade', trade_id, status}`; a first confirmation adds one with status `confirmed` and the `user_id`.
 
 ### 6.7 Disputes and reviews
 

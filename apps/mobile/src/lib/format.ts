@@ -31,3 +31,8 @@ export function formatAgo(iso: string, now: Date = new Date()): string {
   if (seconds < 7 * 86_400) return `${Math.floor(seconds / 86_400)}d`;
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
+
+// "5:30 PM", for chat messages.
+export function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}

@@ -14,11 +14,18 @@ const MESSAGES: Record<string, string> = {
   CAMPUS_REQUIRED: "Campus-only posts need a live campus market.",
   LIMIT_REACHED: "You've reached today's posting limit. Try again tomorrow.",
   ITEM_UNAVAILABLE: "Some items are reserved or sold, so they can't change.",
+  NOT_FOUND: "This listing isn't available anymore.",
+  NOT_PARTY: "You're not part of this chat.",
+  SELF_ACTION: "This is your own listing.",
+  BLOCKED: "You can't message this person.",
+  RATE_LIMITED: "You're sending messages too fast. Wait a few seconds.",
 };
 
-export function errorMessage(error: unknown): string {
+// overrides give a code a message for one screen, such as INVALID_STATE on a closed chat.
+export function errorMessage(error: unknown, overrides: Record<string, string> = {}): string {
   const e = error as { message?: string; status?: number; code?: string } | null;
-  if (e?.message && MESSAGES[e.message]) return MESSAGES[e.message];
+  const known = e?.message ? (overrides[e.message] ?? MESSAGES[e.message]) : undefined;
+  if (known) return known;
   if (e?.status === 429 || e?.code === "over_email_send_rate_limit")
     return "Too many tries. Wait a minute and try again.";
   if (e?.code === "otp_expired") return "That code is wrong or expired.";

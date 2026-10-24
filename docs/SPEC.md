@@ -1269,7 +1269,7 @@ Photos are almost all of the stored bytes and the egress. Estimates for the beta
 - **Transport:** private Broadcast channels `chat:{chat_id}` and `user:{user_id}`. A trigger on `messages` calls `realtime.broadcast_changes` for the chat topic (event `message`, the row in `payload.record`) and sends a `badge` event (`{chat_id, seq}`) to both users' topics. `mark_read` sends a `read` event (`{user_id, seq}`) to the chat topic when the marker moves, for read receipts. Postgres Changes is not used because it processes changes on one thread.
 - **Authorization:** a policy on `realtime.messages` allows `select` when `private.can_join_topic(realtime.topic())` is true for the caller: their own user topic, or a chat they are a party to. There is no `insert` policy, so clients cannot broadcast; every message goes through `send_message`.
 - **Ordering:** `send_message` runs `update chats set last_seq = last_seq + 1 where id = $1 returning last_seq` and inserts with that `seq`. The row lock lasts until commit, so sequence order equals commit order within a chat.
-- **Gap fill:** on reconnect, on returning to the foreground, or when a broadcast arrives with `seq > last_seq + 1`, the app calls `get_messages(chat_id, after_seq)`.
+- **Gap fill:** on reconnect, on returning to the foreground, or when a broadcast arrives with `seq > last_seq + 1`, the app calls `get_messages(chat_id, after_seq)`. A message from the other side also tells the app they have read up to it, since sending moves the sender's own marker.
 - **Idempotent sends:** `unique(chat_id, client_id)`; a retry returns the existing row.
 - **Read state:** `mark_read` uses `greatest(last_read_seq, $seq)`; `send_message` advances the sender's own marker.
 - **Trade cards:** trade transitions insert `system` messages with `meta.trade_id`, so the chat timeline shows every step and the app renders the matching card with its current actions.
@@ -2777,6 +2777,7 @@ Favorites use the `favorites` table directly (insert or delete own rows). Seller
 | `mark_read(chat_id, seq)` | uuid, bigint | `{ last_read_seq }` | `NOT_PARTY` |
 | `set_chat_muted(chat_id, muted)` | uuid, bool | none | `NOT_PARTY` |
 | `unread_summary()` (invoker) | none | `{ total, chats[{chat_id, unread}] }` | |
+| `my_chats()` (invoker) | none | open chats the caller has not left and that have a message, newest first: `chat_id`, `listing` (title, kind, status, cover thumbnail), `partner` (nickname, grade, student or not), `last_message`, `unread`, `muted`, `active_trade` | |
 
 `send_message` also sets the sender's `last_read_seq` to the new `seq`. Photo messages are uploaded first to the private `chat-images` bucket under `{chat_id}/{user_id}/`; both parties can read them.
 

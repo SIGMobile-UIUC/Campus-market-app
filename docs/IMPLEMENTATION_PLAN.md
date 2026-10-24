@@ -111,7 +111,7 @@ Done when: a student posts with photos in under a minute, students at another ca
 | DB-9 | `trades`, `trade_items`, `trade_confirmations`; propose with several items of a bundle or an offer on a wanted request, accept (reserve all or none), decline, withdraw, cancel with late-cancel penalty, confirm and completion (counted flags, point awards) | Backend || Done; point awards with DB-12, late-cancel penalty and rank marking with DB-11 |
 | DB-10 | `trades-advance` job: proposal expiry, auto-complete after 72 hours, expiry after 7 days | Backend || Done; dispute deadlines join with DB-14 |
 | FN-1 | `push-dispatch` and `push-receipts`; push token registration; webhooks after commit | Backend | |
-| APP-9 | Chat list and room: realtime, gap fill, read state, quick replies, photo messages, safety banner, leave chat | App | |
+| APP-9 | Chat list and room: realtime, gap fill, read state, quick replies, photo messages, safety banner, leave chat | App || Done; trade steps show as one line until the cards of APP-10 |
 | APP-10 | Proposal sheet (items picked from a bundle carry over from the move-out sale page), trade cards with current actions, trade details, My trades | App | |
 | APP-18 | Offer sheet from "I have this": photos, item, price against the budget, condition; sending opens a chat with a proposal | App | |
 | APP-11 | Review sheet after completion | App | |

@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAccount } from "@/features/account/account";
+import { openChat } from "@/features/chat/api";
 import { Avatar, type Loadout } from "@/features/avatar/Avatar";
 import { conditionLabel } from "@/features/listings/types";
 import { errorMessage } from "@/lib/errors";
@@ -102,6 +103,7 @@ export default function ListingPage() {
   const insets = useSafeAreaInsets();
   const [listing, setListing] = useState<Listing | null | "failed" | undefined>(undefined);
   const [saved, setSaved] = useState(false);
+  const [opening, setOpening] = useState(false);
 
   // On focus, so coming back from the editor shows the saved changes.
   useFocusEffect(
@@ -209,10 +211,14 @@ export default function ListingPage() {
               <SaveIcon saved={saved} />
             </Pressable>
             <View className="flex-1">
-              {/* ponytail: opens the chat room with M3 (APP-9). */}
+              {/* ponytail: "I have this" opens the chat until the offer sheet of APP-18. */}
               <Button
                 label={listing.kind === "wanted" ? "I have this" : "Chat with seller"}
-                onPress={() => Alert.alert("Coming soon", "Chat arrives in the next update.")}
+                disabled={opening}
+                onPress={() => {
+                  setOpening(true);
+                  void openChat(listing.id).finally(() => setOpening(false));
+                }}
               />
             </View>
           </>

@@ -2,17 +2,19 @@ import { Image, type ImageStyle } from "expo-image";
 import { useEffect, useState } from "react";
 import type { StyleProp } from "react-native";
 
-import { forgetSignedUrl, signedUrl } from "@/lib/photoUrls";
+import { forgetSignedUrl, signedUrl, type Bucket } from "@/lib/photoUrls";
 
 // A private photo by object path: blurhash while loading, cached by path (the URL changes, the path
 // never does), and one retry with a fresh URL when a cached one has expired.
 export function Photo({
   path,
+  bucket = "listing-photos",
   blurhash,
   style,
   accessibilityLabel,
 }: {
   path: string;
+  bucket?: Bucket;
   blurhash?: string | null;
   style?: StyleProp<ImageStyle>;
   accessibilityLabel?: string;
@@ -21,8 +23,8 @@ export function Photo({
   const [retried, setRetried] = useState(false);
 
   useEffect(() => {
-    void signedUrl(path).then((next) => setUrl({ path, url: next }));
-  }, [path, retried]);
+    void signedUrl(path, bucket).then((next) => setUrl({ path, url: next }));
+  }, [path, bucket, retried]);
 
   const current = url?.path === path ? url.url : null;
   return (
@@ -35,7 +37,7 @@ export function Photo({
       accessibilityLabel={accessibilityLabel}
       onError={() => {
         if (retried) return;
-        forgetSignedUrl(path);
+        forgetSignedUrl(path, bucket);
         setRetried(true);
       }}
     />

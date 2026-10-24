@@ -1657,7 +1657,7 @@ The MVP runs four jobs.
 
 Added later: `moderation-sla` (P1, hourly alert on cases older than 20 hours) and `rank-percentiles` (P2, daily).
 
-pg_cron runs in UTC. Each job takes `pg_try_advisory_lock(job_id)` and exits if another run holds it.
+pg_cron runs in UTC. Each job takes `pg_try_advisory_xact_lock(hashtext(job_name))` and exits if another run holds it; the lock ends with the run's transaction. A job handles each row in its own subtransaction, so one failing row logs a warning and stays due without holding back the rest.
 
 ### 4.20 Security and threat model
 

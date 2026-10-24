@@ -1,8 +1,8 @@
 -- Trades: propose, accept with all-or-none reservation, decline, withdraw, cancel, confirm, completion
--- with counted flags, wanted-listing offers, my_trades and leaving (spec 4.10, 5.2, 6.6).
+-- with counted flags, wanted-listing offers, my_trades, leaving and the trades-advance job (spec 4.10, 5.2, 6.6).
 begin;
 \ir _helpers.psql
-select plan(53);
+select plan(60);
 select tests.build_matrix();
 
 insert into public.meetup_spots (campus_id, name, lat, lng)
@@ -185,6 +185,43 @@ select is(jsonb_array_length(public.my_trades('completed', null, 1) -> 'rows') |
 select throws_ok($$ select public.my_trades('everything') $$, 'P0001', 'VALIDATION_FAILED', 'unknown status groups are rejected');
 select public.withdraw_trade(tests.id('t_place'));
 select lives_ok($$ select public.leave_chat(tests.id('sale_chat')) $$, 'a chat can be left once its trades are closed');
+
+-- The trades-advance job (DB-10): proposal expiry, auto-complete after 72 hours, expiry after 7 days.
+select tests.remember('box', tests.create_listing_as('alpha1', '{"kind": "bundle", "visibility": "open", "title": "Kitchen box",
+  "items": [{"name": "Kettle", "price_cents": 1000, "condition": "good"}, {"name": "Toaster", "price_cents": 1500, "condition": "good"},
+            {"name": "Mug", "price_cents": 200, "condition": "good"}]}'));
+select tests.remember(lower(name), id) from public.items where listing_id = tests.id('box');
+select tests.login_as(tests.user_id('beta1'));
+select tests.propose('j_expire', 'box', tests.proposal(array['kettle'], 1000));
+select tests.propose('j_done', 'box', tests.proposal(array['toaster'], 1500));
+select tests.propose('j_lapse', 'box', tests.proposal(array['mug'], 200));
+select tests.login_as(tests.user_id('alpha2'));
+select tests.propose('j_wait', 'box', tests.proposal(array['kettle'], 1000));
+select tests.login_as(tests.user_id('alpha1'));
+select public.accept_trade(tests.id('j_done'));
+select public.accept_trade(tests.id('j_lapse'));
+select public.accept_trade(tests.id('j_wait'));
+reset role;
+update public.trades set meet_at = now() - interval '73 hours' where id = tests.id('j_done');
+update public.trades set meet_at = now() - interval '8 days', next_check_at = now() - interval '1 day' where id = tests.id('j_lapse');
+update public.trades set meet_at = now() - interval '4 days', next_check_at = now() - interval '1 minute' where id = tests.id('j_wait');
+update public.trades set next_check_at = now() - interval '1 minute' where id = tests.id('j_expire');
+select tests.login_as(tests.user_id('beta1'));
+select public.confirm_trade(tests.id('j_done'));
+reset role;
+select private.trades_advance();
+select is(tests.status('j_expire'), 'expired', 'an unanswered proposal expires after 48 hours');
+select ok(exists (select 1 from public.messages where meta ->> 'trade_id' = tests.id('j_expire')::text and meta ->> 'status' = 'expired'),
+  'and its card shows it in the chat');
+select is(tests.status('j_done') || ' ' || tests.item_status('toaster'), 'completed sold',
+  'a trade one side confirmed completes 72 hours after the meetup');
+select is(tests.status('j_lapse') || ' ' || tests.item_status('mug'), 'expired available',
+  'an unconfirmed trade expires 7 days after the meetup and frees its items');
+select is((select status::text || ' ' || (next_check_at = meet_at + interval '7 days') from public.trades where id = tests.id('j_wait')), 'accepted true',
+  'a trade that is not due yet waits for its next check');
+select private.trades_advance();
+select is(tests.status('j_wait') || ' ' || tests.status('j_done'), 'accepted completed', 'running again changes nothing');
+select is((select schedule from cron.job where jobname = 'trades-advance'), '*/5 * * * *', 'the job runs every 5 minutes');
 
 select * from finish();
 rollback;

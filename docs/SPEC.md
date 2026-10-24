@@ -1269,7 +1269,7 @@ Photos are almost all of the stored bytes and the egress. Estimates for the beta
 - **Transport:** private Broadcast channels `chat:{chat_id}` and `user:{user_id}`. A trigger on `messages` calls `realtime.broadcast_changes` for the chat topic (event `message`, the row in `payload.record`) and sends a `badge` event (`{chat_id, seq}`) to both users' topics. `mark_read` sends a `read` event (`{user_id, seq}`) to the chat topic when the marker moves, for read receipts. Postgres Changes is not used because it processes changes on one thread.
 - **Authorization:** a policy on `realtime.messages` allows `select` when `private.can_join_topic(realtime.topic())` is true for the caller: their own user topic, or a chat they are a party to. There is no `insert` policy, so clients cannot broadcast; every message goes through `send_message`.
 - **Ordering:** `send_message` runs `update chats set last_seq = last_seq + 1 where id = $1 returning last_seq` and inserts with that `seq`. The row lock lasts until commit, so sequence order equals commit order within a chat.
-- **Gap fill:** on reconnect, on returning to the foreground, or when a broadcast arrives with `seq > last_seq + 1`, the app calls `get_messages(chat_id, after_seq)`.
+- **Gap fill:** on reconnect, on returning to the foreground, or when a broadcast arrives with `seq > last_seq + 1`, the app calls `get_messages(chat_id, after_seq)`. A message from the other side also tells the app they have read up to it, since sending moves the sender's own marker.
 - **Idempotent sends:** `unique(chat_id, client_id)`; a retry returns the existing row.
 - **Read state:** `mark_read` uses `greatest(last_read_seq, $seq)`; `send_message` advances the sender's own marker.
 - **Trade cards:** trade transitions insert `system` messages with `meta.trade_id`, so the chat timeline shows every step and the app renders the matching card with its current actions.
@@ -1657,7 +1657,7 @@ The MVP runs four jobs.
 
 Added later: `moderation-sla` (P1, hourly alert on cases older than 20 hours) and `rank-percentiles` (P2, daily).
 
-pg_cron runs in UTC. Each job takes `pg_try_advisory_lock(job_id)` and exits if another run holds it.
+pg_cron runs in UTC. Each job takes `pg_try_advisory_xact_lock(hashtext(job_name))` and exits if another run holds it; the lock ends with the run's transaction. A job handles each row in its own subtransaction, so one failing row logs a warning and stays due without holding back the rest.
 
 ### 4.20 Security and threat model
 
@@ -2186,7 +2186,7 @@ create table public.trades (
   buyer_id      uuid not null references public.profiles,
   proposed_by   uuid not null references public.profiles,
   status        public.trade_status not null default 'proposed',
-  total_cents   integer not null check (total_cents >= 0),
+  total_cents   integer not null check (total_cents between 0 and 10000000),
   meet_at       timestamptz,
   spot_id       uuid references public.meetup_spots on delete set null,
   place_text    text check (char_length(place_text) <= 120),
@@ -2196,12 +2196,13 @@ create table public.trades (
   closed_at     timestamptz,
   next_check_at timestamptz,                           -- next automatic transition
   cancelled_by  uuid references public.profiles,
-  cancel_reason text,
+  cancel_reason text check (char_length(cancel_reason) <= 500),
   counted_seller boolean not null default false,       -- set at completion (see section 4.10.4)
   counted_buyer  boolean not null default false,
   check (seller_id <> buyer_id),
   check (proposed_by in (seller_id, buyer_id)),
-  check (meet_at is not null and (spot_id is not null or place_text is not null))
+  -- propose_trade requires a spot or a place; a deleted spot (set null) must not break the row
+  check (meet_at is not null)
 );
 
 alter table public.items
@@ -2211,8 +2212,8 @@ create table public.trade_items (
   trade_id    uuid not null references public.trades on delete cascade,
   line        smallint not null,
   item_id     uuid references public.items on delete set null,   -- null for wanted-listing offers
-  name        text not null,
-  price_cents integer not null check (price_cents >= 0),
+  name        text not null check (char_length(name) between 1 and 80),
+  price_cents integer not null check (price_cents between 0 and 10000000),
   primary key (trade_id, line)
 );
 
@@ -2776,6 +2777,7 @@ Favorites use the `favorites` table directly (insert or delete own rows). Seller
 | `mark_read(chat_id, seq)` | uuid, bigint | `{ last_read_seq }` | `NOT_PARTY` |
 | `set_chat_muted(chat_id, muted)` | uuid, bool | none | `NOT_PARTY` |
 | `unread_summary()` (invoker) | none | `{ total, chats[{chat_id, unread}] }` | |
+| `my_chats()` (invoker) | none | open chats the caller has not left and that have a message, newest first: `chat_id`, `listing` (title, kind, status, cover thumbnail), `partner` (nickname, grade, student or not), `last_message`, `unread`, `muted`, `active_trade` | |
 
 `send_message` also sets the sender's `last_read_seq` to the new `seq`. Photo messages are uploaded first to the private `chat-images` bucket under `{chat_id}/{user_id}/`; both parties can read them.
 
@@ -2783,15 +2785,15 @@ Favorites use the `favorites` table directly (insert or delete own rows). Seller
 
 | Function | Params | Returns | Errors |
 | --- | --- | --- | --- |
-| `propose_trade(chat_id, proposal, request_id)` | uuid; jsonb: `role` (`seller` or `buyer`, from the caller's side), `item_ids[]` or `offer_items[{name, price_cents}]` (wanted listings), `total_cents`, `meet_at`, `spot_id`, `place_text`; uuid | trade | `NOT_PARTY`, `ITEM_UNAVAILABLE`, `VALIDATION_FAILED` (no time or place), `BLOCKED`, `RESTRICTED` |
-| `accept_trade(trade_id)` | uuid | trade with items reserved | `NOT_PARTY`, `INVALID_STATE`, `ITEM_UNAVAILABLE` (nothing reserved) |
+| `propose_trade(chat_id, proposal, request_id)` | uuid; jsonb: `role` (`seller` or `buyer`, from the caller's side), `item_ids[]` or `offer_items[{name, price_cents}]` (wanted listings), `total_cents`, `meet_at`, `spot_id`, `place_text`; uuid | trade | `NOT_PARTY`, `INVALID_STATE` (chat or listing closed), `ITEM_UNAVAILABLE`, `VALIDATION_FAILED` (no future time, no spot of the listing's campus or typed place), `PROHIBITED_CONTENT`, `BLOCKED`, `RESTRICTED` |
+| `accept_trade(trade_id)` | uuid | trade with items reserved | `NOT_PARTY`, `INVALID_STATE` (own proposal, older than 48 hours, or listing closed), `ITEM_UNAVAILABLE` (nothing reserved) |
 | `decline_trade(trade_id)` | uuid | trade | `NOT_PARTY`, `INVALID_STATE` |
 | `withdraw_trade(trade_id)` | uuid | trade | `FORBIDDEN` (not the proposer), `INVALID_STATE` |
-| `cancel_trade(trade_id, reason)` | uuid, text | `{ trade, late_cancel_penalty }` | `NOT_PARTY`, `INVALID_STATE` |
-| `confirm_trade(trade_id)` | uuid | `{ trade, completed, points_awarded }` | `NOT_PARTY`, `INVALID_STATE`, `WINDOW_CLOSED` |
+| `cancel_trade(trade_id, reason)` | uuid, text (1 to 500 characters) | `{ trade, late_cancel_penalty }` | `NOT_PARTY`, `INVALID_STATE`, `VALIDATION_FAILED` |
+| `confirm_trade(trade_id)` | uuid | `{ trade, completed, points_awarded }` | `NOT_PARTY`, `INVALID_STATE`, `WINDOW_CLOSED` (before 30 minutes ahead of `meet_at` or after 7 days past it) |
 | `my_trades(status_group, cursor, limit)` (invoker) | `active` / `completed` / `closed`, jsonb, int | `{ rows[], next_cursor }` | |
 
-`confirm_trade` records the caller's confirmation and completes the trade when both have confirmed.
+`confirm_trade` records the caller's confirmation and completes the trade when both have confirmed. Repeated taps on accept, decline, withdraw, cancel and confirm return the current trade instead of an error. Every transition adds a system message with `meta: {event: 'trade', trade_id, status}`; a first confirmation adds one with status `confirmed` and the `user_id`.
 
 ### 6.7 Disputes and reviews
 

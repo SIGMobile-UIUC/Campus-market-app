@@ -4,7 +4,7 @@ import { Image } from "expo-image";
 import { ImageManipulator, SaveFormat, type ImageRef } from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 
-import { BUCKET } from "./photoUrls";
+import type { Bucket } from "./photoUrls";
 import { supabase } from "./supabase";
 
 // The only place that compresses, uploads and names photos (spec 4.7). Rows store object paths, never
@@ -68,8 +68,8 @@ export async function preparePhoto(uri: string): Promise<PreparedPhoto> {
   return { detail, thumb, blurhash };
 }
 
-async function put(path: string, file: Encoded) {
-  const { error } = await supabase.storage.from(BUCKET).upload(path, await new File(file.uri).arrayBuffer(), {
+async function put(bucket: Bucket, path: string, file: Encoded) {
+  const { error } = await supabase.storage.from(bucket).upload(path, await new File(file.uri).arrayBuffer(), {
     contentType: `image/${file.format}`,
     // Paths are random and never reused, so an object never changes (spec 4.7.1).
     cacheControl: "31536000",
@@ -83,8 +83,22 @@ export async function uploadPhoto(userId: string, photo: PreparedPhoto): Promise
   const id = randomUUID();
   const path = `${userId}/${id}.${photo.detail.format === "webp" ? "webp" : "jpg"}`;
   const thumb_path = `${userId}/${id}_t.${photo.thumb.format === "webp" ? "webp" : "jpg"}`;
-  await Promise.all([put(path, photo.detail), put(thumb_path, photo.thumb)]);
+  await Promise.all([
+    put("listing-photos", path, photo.detail),
+    put("listing-photos", thumb_path, photo.thumb),
+  ]);
   return { path, thumb_path, blurhash: photo.blurhash, bytes: photo.detail.bytes + photo.thumb.bytes };
+}
+
+// A chat photo is one detail-size image under {chat_id}/{user_id}/, the folder the chat-images policy
+// requires (spec 4.9); bubbles show it scaled down. Returns the object path for send_message.
+export async function uploadChatPhoto(chatId: string, userId: string, uri: string): Promise<string> {
+  const original = await ImageManipulator.manipulate(uri).renderAsync();
+  const image = await resized(original, DETAIL.edge);
+  const detail = await encodeToTarget((q) => save(image, q), DETAIL.maxBytes);
+  const path = `${chatId}/${userId}/${randomUUID()}.${detail.format === "webp" ? "webp" : "jpg"}`;
+  await put("chat-images", path, detail);
+  return path;
 }
 
 // Returns local image URIs, or [] when the user cancels or denies the camera.

@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 
 import { AccountProvider, useAccount } from "@/features/account/account";
+import { ChatProvider } from "@/features/chat/ChatProvider";
 import { toCampus } from "@/features/campus/campuses";
 import { Button } from "@/ui/Button";
 import { ThemeProvider } from "@/ui/theme";
@@ -43,32 +44,35 @@ function Shell() {
           <Button label="Try again" onPress={refresh} />
         </View>
       ) : (
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Protected guard={!session}>
-            <Stack.Screen name="(auth)" />
-          </Stack.Protected>
-          <Stack.Protected guard={!!session && !!account && !onboarded}>
-            <Stack.Screen name="(onboarding)" />
-          </Stack.Protected>
-          <Stack.Protected guard={!!session && onboarded}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="post" />
-            <Stack.Screen name="browse" />
-            <Stack.Screen name="search" />
-            <Stack.Screen name="listing/[id]" />
-            <Stack.Screen name="edit/[id]" />
-            <Stack.Screen name="favorites" />
-            <Stack.Screen name="wanted" />
-            <Stack.Screen
-              name="sell"
-              options={{
-                presentation: "formSheet",
-                sheetGrabberVisible: true,
-                sheetAllowedDetents: "fitToContents",
-              }}
-            />
-          </Stack.Protected>
-        </Stack>
+        <ChatProvider userId={session && onboarded ? session.user.id : null}>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Protected guard={!session}>
+              <Stack.Screen name="(auth)" />
+            </Stack.Protected>
+            <Stack.Protected guard={!!session && !!account && !onboarded}>
+              <Stack.Screen name="(onboarding)" />
+            </Stack.Protected>
+            <Stack.Protected guard={!!session && onboarded}>
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="post" />
+              <Stack.Screen name="browse" />
+              <Stack.Screen name="search" />
+              <Stack.Screen name="listing/[id]" />
+              <Stack.Screen name="edit/[id]" />
+              <Stack.Screen name="favorites" />
+              <Stack.Screen name="wanted" />
+              <Stack.Screen name="chat/[id]" />
+              <Stack.Screen
+                name="sell"
+                options={{
+                  presentation: "formSheet",
+                  sheetGrabberVisible: true,
+                  sheetAllowedDetents: "fitToContents",
+                }}
+              />
+            </Stack.Protected>
+          </Stack>
+        </ChatProvider>
       )}
     </ThemeProvider>
   );

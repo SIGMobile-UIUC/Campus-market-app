@@ -20,7 +20,8 @@ select set_eq(
   $$ select p.proname::text from pg_proc p where p.pronamespace = 'public'::regnamespace and p.prosecdef $$,
   array['get_my_account', 'complete_onboarding', 'create_listing', 'update_listing', 'close_listing',
         'reopen_listing', 'delete_listing', 'mark_sold_elsewhere', 'favorite_counts',
-        'get_or_create_chat', 'send_message', 'mark_read', 'set_chat_muted', 'leave_chat'],
+        'get_or_create_chat', 'send_message', 'mark_read', 'set_chat_muted', 'leave_chat',
+        'propose_trade', 'accept_trade', 'decline_trade', 'withdraw_trade', 'cancel_trade', 'confirm_trade'],
   'security definer functions in public match the allowlist'
 );
 

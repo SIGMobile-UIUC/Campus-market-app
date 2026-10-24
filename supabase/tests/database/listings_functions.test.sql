@@ -4,6 +4,8 @@ begin;
 \ir _helpers.psql
 select plan(45);
 select tests.build_matrix();
+-- Reservations are faked here without trades; trades.test.sql covers real ones.
+alter table public.items drop constraint items_reserved_trade_id_fkey;
 
 -- Area, visibility and market by owner.
 select tests.remember('desk', tests.create_listing_as('alpha1'));

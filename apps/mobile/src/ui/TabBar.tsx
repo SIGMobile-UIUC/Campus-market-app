@@ -4,6 +4,8 @@ import { House, LayoutGrid, MessageCircle, Plus, User, type LucideIcon } from "l
 import { Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useChats } from "@/features/chat/ChatProvider";
+
 import { useTheme } from "./theme";
 
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>["tabBar"]>>[0];
@@ -19,15 +21,18 @@ const ICONS: Record<string, { Icon: LucideIcon; label: string }> = {
 export function TabBar({ state, navigation }: TabBarProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { unread } = useChats();
 
   const tab = (index: number) => {
     const route = state.routes[index];
     const { Icon, label } = ICONS[route.name];
     const focused = state.index === index;
+    const badge = route.name === "chats" && unread > 0 ? (unread > 99 ? "99+" : String(unread)) : null;
     return (
       <Pressable
         key={route.key}
         accessibilityRole="tab"
+        accessibilityLabel={badge ? `${label}, ${unread} unread` : label}
         accessibilityState={{ selected: focused }}
         onPress={() => {
           const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
@@ -35,7 +40,14 @@ export function TabBar({ state, navigation }: TabBarProps) {
         }}
         className="min-w-14 items-center gap-0.5"
       >
-        <Icon size={24} color={focused ? colors.ink : colors.muted} strokeWidth={2} />
+        <View>
+          <Icon size={24} color={focused ? colors.ink : colors.muted} strokeWidth={2} />
+          {badge ? (
+            <View className="absolute -right-2.5 -top-1.5 h-[18px] min-w-[18px] items-center justify-center rounded-full bg-danger px-1">
+              <Text className="text-[10px] font-extrabold text-bg">{badge}</Text>
+            </View>
+          ) : null}
+        </View>
         <Text className={`text-[11px] ${focused ? "font-extrabold text-ink" : "text-muted"}`}>{label}</Text>
       </Pressable>
     );

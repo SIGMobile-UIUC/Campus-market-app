@@ -1,8 +1,9 @@
 import { router } from "expo-router";
 import { Megaphone } from "lucide-react-native";
-import { Alert, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 import { MODES } from "@/features/catalog/catalog";
+import { openChat } from "@/features/chat/api";
 import { formatAgo, formatPrice } from "@/lib/format";
 import { GradeBadge } from "@/ui/GradeBadge";
 
@@ -10,12 +11,8 @@ import type { FeedRow } from "./types";
 
 const WANTED = MODES.find((m) => m.id === "wanted")!;
 
-// "I have this" opens the offer sheet once chat exists (APP-18, M3).
-export function offerToRequest() {
-  Alert.alert("Coming soon", "Offers open a chat with the requester in the next update.");
-}
-
-// A request card (spec 3.3, Wanted board): what is wanted, the budget, who asks and "I have this".
+// A request card (spec 3.3, Wanted board): what is wanted, the budget, who asks and "I have this", which
+// opens a chat with the requester (the offer sheet comes with APP-18).
 // ponytail: the offer count arrives with offers (M3).
 export function WantedCard({ row, mine = false }: { row: FeedRow; mine?: boolean }) {
   return (
@@ -48,7 +45,7 @@ export function WantedCard({ row, mine = false }: { row: FeedRow; mine?: boolean
         {mine ? null : (
           <Pressable
             accessibilityRole="button"
-            onPress={offerToRequest}
+            onPress={() => void openChat(row.id)}
             className="h-9 justify-center rounded-full bg-accent px-3.5"
           >
             <Text className="text-[13px] font-bold text-on-accent">I have this</Text>

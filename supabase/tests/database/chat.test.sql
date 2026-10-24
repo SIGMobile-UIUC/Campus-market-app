@@ -1,7 +1,7 @@
 -- Chats, messages, read state, leaving, Broadcast delivery and chat photo storage (spec 4.9, 5.3.5, 6.5).
 begin;
 \ir _helpers.psql
-select plan(52);
+select plan(54);
 select tests.build_matrix();
 
 select tests.remember('desk', tests.create_listing_as('alpha1'));
@@ -129,6 +129,11 @@ select tests.login_as(tests.user_id('alpha1'));
 select isnt_empty($$ select 1 from storage.objects where bucket_id = 'chat-images' and name like tests.id('chat') || '/%' $$,
   'the other party reads them');
 
+-- Chat list (APP-9).
+select tests.login_as(tests.user_id('alpha1'));
+select is((select (r -> 'partner' ->> 'display_name') || ' ' || (r ->> 'unread') from jsonb_array_elements(public.my_chats()) r
+           where (r ->> 'chat_id')::uuid = tests.id('chat')), 'alpha2 0', 'the chat list shows the other side and the unread count');
+
 -- Leaving (CHT-7, CHT-8).
 select tests.login_as(tests.user_id('alpha2'));
 select ok((public.leave_chat(tests.id('chat')) ->> 'purge_after') is null, 'the first side leaves; nothing is purged yet');
@@ -142,5 +147,7 @@ select is((public.leave_chat(tests.id('chat')) ->> 'purge_after')::timestamptz, 
 select tests.login_as(tests.user_id('alpha2'));
 select isnt((public.get_or_create_chat(tests.id('desk')) ->> 'chat_id')::uuid, tests.id('chat'), 'contacting the owner again starts a new chat');
 
+select is((select count(*)::int from jsonb_array_elements(public.my_chats()) r where (r ->> 'listing_id')::uuid = tests.id('desk')), 0,
+  'left chats and chats without messages are not listed');
 select * from finish();
 rollback;

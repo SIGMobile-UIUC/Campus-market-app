@@ -121,17 +121,17 @@ Done when: two phones complete a trade end to end on staging, with push notifica
 
 ### M4 · Trust, points and safety (weeks 7 to 8, Nov 16 to 29; Thanksgiving week is light)
 
-| ID | Task | Area |
-| --- | --- | --- |
-| DB-11 | `reviews`, `penalties`, `rank_stats`; `rank-recompute` job reading `app_config.rank_rules` | Backend |
-| DB-12 | `wallets`, `points_ledger`, `award_points`, `purchases`, `inventory`, `avatar_loadout`, `checkins`; shop seed (`shop_items`, `inventory`, `avatar_loadout` and the starter items shipped with APP-3) | Backend |
-| DB-13 | `reports`, `blocks`, auto-hide trigger, `enforcement_actions`, `private.admin_log`; admin queue, resolve, enforce, set config | Backend |
-| DB-14 | No-show disputes: open, respond, evidence, admin decision; evidence bucket | Backend |
-| APP-12 | Me tab: grade card with progress, wallet and history, daily check-in, shop and avatar editor (SVG layers) | App |
-| APP-13 | Report and block menus; account status page; admin queue and case view for admins | App |
-| APP-14 | Dispute flow with in-app camera evidence | App |
-| APP-19 | Settings: notifications, privacy and consent changes, blocked users, community rules, contact address, data credits (GeoNames, CC BY 4.0), account (entry to account deletion) | App |
-| TST-3 | Race test for the daily points cap; pgTAP for trust grades and points rules | Backend |
+| ID | Task | Area | Status |
+| --- | --- | --- | --- |
+| DB-11 | `reviews`, `penalties`, `rank_stats`; `rank-recompute` job reading `app_config.rank_rules` | Backend | Done; point awards join with DB-12, dispute penalties with DB-14 |
+| DB-12 | `wallets`, `points_ledger`, `award_points`, `purchases`, `inventory`, `avatar_loadout`, `checkins`; shop seed (`shop_items`, `inventory`, `avatar_loadout` and the starter items shipped with APP-3) | Backend | |
+| DB-13 | `reports`, `blocks`, auto-hide trigger, `enforcement_actions`, `private.admin_log`; admin queue, resolve, enforce, set config | Backend | |
+| DB-14 | No-show disputes: open, respond, evidence, admin decision; evidence bucket | Backend | |
+| APP-12 | Me tab: grade card with progress, wallet and history, daily check-in, shop and avatar editor (SVG layers) | App | |
+| APP-13 | Report and block menus; account status page; admin queue and case view for admins | App | |
+| APP-14 | Dispute flow with in-app camera evidence | App | |
+| APP-19 | Settings: notifications, privacy and consent changes, blocked users, community rules, contact address, data credits (GeoNames, CC BY 4.0), account (entry to account deletion) | App | |
+| TST-3 | Race test for the daily points cap; pgTAP for trust grades and points rules | Backend | |
 
 Done when: after a completed trade both users see their new points and, once the job runs, their grade; a report from three users hides a listing.
 

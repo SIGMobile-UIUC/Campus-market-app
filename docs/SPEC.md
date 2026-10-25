@@ -425,7 +425,7 @@ Daily earning cap: 200 points.
 | Fast replies | Slow replies |
 | Fair price | Pushy about price |
 
-Packing tags for shipping trades come with escrow (Part 7). No-shows are reported as disputes (section 1.6.7), never as review tags.
+The tags live in `app_config.review_tags` (a public row the app reads). Packing tags for shipping trades come with escrow (Part 7). No-shows are reported as disputes (section 1.6.7), never as review tags.
 
 #### 1.7.4 Items
 
@@ -1374,7 +1374,7 @@ Completion runs in one transaction, whether triggered by a user or by the job:
 - **What users see:** the grade, a progress value toward the next grade (the least-met requirement as a fraction), trade count, rating and active penalties. The app can read only `app_config` rows marked `public` (such as `min_app_version`), so grade thresholds never reach it.
 - **Recompute from source:** `rank-recompute` (every 5 minutes) rebuilds `rank_stats` for users in `rank_dirty` and copies the grade to `profiles.tier`. Recomputing from source gives the same answer however often or in whatever order it runs.
 - **Top badge (P2):** `rank-percentiles` (daily) computes `percent_rank() over (order by score desc, counted_trades desc, created_at)` among A+ users and marks the top 5% once at least 20 users hold A+.
-- **Penalty expiry:** a daily job marks users whose penalties expired that day as dirty, so B− and C end on time.
+- **Grade changes without an event:** each `rank-recompute` run also picks up users whose penalty expired or whose account passed an age threshold since their last computation, so B− and C end on time and grades that need account age arrive without another trade.
 
 ### 4.13 Points economy engine
 
@@ -2304,7 +2304,7 @@ create table public.penalties (
 #### 5.3.8 Rank
 
 ```sql
-create table public.rank_stats (                -- own row and admins; others see trade count and rating through a view
+create table public.rank_stats (                -- own row and admins; other people's trade count and rating come with the public profile
   user_id           uuid primary key references public.profiles on delete cascade,
   counted_trades    integer not null,
   distinct_partners integer not null,

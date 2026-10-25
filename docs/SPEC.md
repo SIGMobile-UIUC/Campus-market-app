@@ -747,7 +747,7 @@ Expo Router groups: `(auth)` for welcome, email and code (signed out), `(onboard
 | Listing | Listing page | Photo carousel, seller row with school badge, grade, trade count and reply time, price, condition and payment chips, description, move-out sale banner when the item is part of one, meetup map with the suggested spot, saves and chats counts, similar items, sticky bar with heart and Chat | P0 |
 | | Move-out sale page | Seller card with pickup dorm and end date, filter chips, item rows with checkboxes and status (reserved and sold cannot be selected), sticky bar with the selected count and "Ask about N items" | P0 |
 | | Wanted board | "Post a request" banner, category chips, request cards with budget, requester and offer count, "I have this" | P0 |
-| | Offer sheet | Opened by "I have this": photos, what is offered, price checked against the budget, condition, "Send offer" opens a chat | P0 |
+| | Offer sheet | Opened by "I have this" (or Propose in a chat about a request): up to 3 photos, what is offered, condition, price checked against the budget, meetup time and place. "Send offer" posts the photos and a short note to the chat, proposes the trade and opens the chat | P0 |
 | | Locked preview | Campus-only listing opened from another school | P1 |
 | Sell | Type | One item, Move-out sale, Give it away, Wanted request, with the market it posts to | P0 |
 | | Photos | Camera and library, reorder, up to 10 per item | P0 |

@@ -113,7 +113,7 @@ Done when: a student posts with photos in under a minute, students at another ca
 | FN-1 | `push-dispatch` and `push-receipts`; push token registration; webhooks after commit | Backend | |
 | APP-9 | Chat list and room: realtime, gap fill, read state, quick replies, photo messages, safety banner, leave chat | App | Done; trade steps show as one line until the cards of APP-10 |
 | APP-10 | Proposal sheet (items picked from a bundle carry over from the move-out sale page), trade cards with current actions, trade details, My trades | App || Done; points toast and review sheet come with DB-12 and APP-11 |
-| APP-18 | Offer sheet from "I have this": photos, item, price against the budget, condition; sending opens a chat with a proposal | App | |
+| APP-18 | Offer sheet from "I have this": photos, item, price against the budget, condition; sending opens a chat with a proposal | App || Done; the offer count on request cards comes later |
 | APP-11 | Review sheet after completion | App | |
 | TST-2 | Race tests: double reservation, confirm against the job, dispute against the job | Backend | |
 

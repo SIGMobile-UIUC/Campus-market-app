@@ -112,26 +112,26 @@ Done when: a student posts with photos in under a minute, students at another ca
 | DB-10 | `trades-advance` job: proposal expiry, auto-complete after 72 hours, expiry after 7 days | Backend | Done; dispute deadlines join with DB-14 |
 | FN-1 | `push-dispatch` and `push-receipts`; push token registration; webhooks after commit | Backend | |
 | APP-9 | Chat list and room: realtime, gap fill, read state, quick replies, photo messages, safety banner, leave chat | App | Done; trade steps show as one line until the cards of APP-10 |
-| APP-10 | Proposal sheet (items picked from a bundle carry over from the move-out sale page), trade cards with current actions, trade details, My trades | App || Done; points toast and review sheet come with DB-12 and APP-11 |
-| APP-18 | Offer sheet from "I have this": photos, item, price against the budget, condition; sending opens a chat with a proposal | App || Done; the offer count on request cards comes later |
+| APP-10 | Proposal sheet (items picked from a bundle carry over from the move-out sale page), trade cards with current actions, trade details, My trades | App | Done; points toast and review sheet come with DB-12 and APP-11 |
+| APP-18 | Offer sheet from "I have this": photos, item, price against the budget, condition; sending opens a chat with a proposal | App | Done; the offer count on request cards comes later |
 | APP-11 | Review sheet after completion | App | |
-| TST-2 | Race tests: double reservation, confirm against the job, dispute against the job | Backend || Done for reservations, confirm against the job, the pair lock, accept against withdraw and opening a chat; dispute against the job joins with DB-14 |
+| TST-2 | Race tests: double reservation, confirm against the job, dispute against the job | Backend | Done for reservations, confirm against the job, the pair lock, accept against withdraw and opening a chat; dispute against the job joins with DB-14 |
 
 Done when: two phones complete a trade end to end on staging, with push notifications, and the race tests pass.
 
 ### M4 · Trust, points and safety (weeks 7 to 8, Nov 16 to 29; Thanksgiving week is light)
 
-| ID | Task | Area |
-| --- | --- | --- |
-| DB-11 | `reviews`, `penalties`, `rank_stats`; `rank-recompute` job reading `app_config.rank_rules` | Backend |
-| DB-12 | `wallets`, `points_ledger`, `award_points`, `purchases`, `inventory`, `avatar_loadout`, `checkins`; shop seed (`shop_items`, `inventory`, `avatar_loadout` and the starter items shipped with APP-3) | Backend |
-| DB-13 | `reports`, `blocks`, auto-hide trigger, `enforcement_actions`, `private.admin_log`; admin queue, resolve, enforce, set config | Backend |
-| DB-14 | No-show disputes: open, respond, evidence, admin decision; evidence bucket | Backend |
-| APP-12 | Me tab: grade card with progress, wallet and history, daily check-in, shop and avatar editor (SVG layers) | App |
-| APP-13 | Report and block menus; account status page; admin queue and case view for admins | App |
-| APP-14 | Dispute flow with in-app camera evidence | App |
-| APP-19 | Settings: notifications, privacy and consent changes, blocked users, community rules, contact address, data credits (GeoNames, CC BY 4.0), account (entry to account deletion) | App |
-| TST-3 | Race test for the daily points cap; pgTAP for trust grades and points rules | Backend |
+| ID | Task | Area | Status |
+| --- | --- | --- | --- |
+| DB-11 | `reviews`, `penalties`, `rank_stats`; `rank-recompute` job reading `app_config.rank_rules` | Backend | Done; point awards join with DB-12, dispute penalties with DB-14 |
+| DB-12 | `wallets`, `points_ledger`, `award_points`, `purchases`, `inventory`, `avatar_loadout`, `checkins`; shop seed (`shop_items`, `inventory`, `avatar_loadout` and the starter items shipped with APP-3) | Backend | |
+| DB-13 | `reports`, `blocks`, auto-hide trigger, `enforcement_actions`, `private.admin_log`; admin queue, resolve, enforce, set config | Backend | |
+| DB-14 | No-show disputes: open, respond, evidence, admin decision; evidence bucket | Backend | |
+| APP-12 | Me tab: grade card with progress, wallet and history, daily check-in, shop and avatar editor (SVG layers) | App | |
+| APP-13 | Report and block menus; account status page; admin queue and case view for admins | App | |
+| APP-14 | Dispute flow with in-app camera evidence | App | |
+| APP-19 | Settings: notifications, privacy and consent changes, blocked users, community rules, contact address, data credits (GeoNames, CC BY 4.0), account (entry to account deletion) | App | |
+| TST-3 | Race test for the daily points cap; pgTAP for trust grades and points rules | Backend | |
 
 Done when: after a completed trade both users see their new points and, once the job runs, their grade; a report from three users hides a listing.
 

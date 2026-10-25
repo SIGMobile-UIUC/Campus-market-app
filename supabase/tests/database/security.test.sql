@@ -21,7 +21,8 @@ select set_eq(
   array['get_my_account', 'complete_onboarding', 'create_listing', 'update_listing', 'close_listing',
         'reopen_listing', 'delete_listing', 'mark_sold_elsewhere', 'favorite_counts',
         'get_or_create_chat', 'send_message', 'mark_read', 'set_chat_muted', 'leave_chat',
-        'propose_trade', 'accept_trade', 'decline_trade', 'withdraw_trade', 'cancel_trade', 'confirm_trade'],
+        'propose_trade', 'accept_trade', 'decline_trade', 'withdraw_trade', 'cancel_trade', 'confirm_trade',
+        'submit_review'],
   'security definer functions in public match the allowlist'
 );
 

@@ -115,7 +115,7 @@ Done when: a student posts with photos in under a minute, students at another ca
 | APP-10 | Proposal sheet (items picked from a bundle carry over from the move-out sale page), trade cards with current actions, trade details, My trades | App || Done; points toast and review sheet come with DB-12 and APP-11 |
 | APP-18 | Offer sheet from "I have this": photos, item, price against the budget, condition; sending opens a chat with a proposal | App | |
 | APP-11 | Review sheet after completion | App | |
-| TST-2 | Race tests: double reservation, confirm against the job, dispute against the job | Backend | |
+| TST-2 | Race tests: double reservation, confirm against the job, dispute against the job | Backend || Done for reservations, confirm against the job, the pair lock, accept against withdraw and opening a chat; dispute against the job joins with DB-14 |
 
 Done when: two phones complete a trade end to end on staging, with push notifications, and the race tests pass.
 

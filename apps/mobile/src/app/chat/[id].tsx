@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { Ellipsis, ImagePlus, SendHorizontal } from "lucide-react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -21,6 +21,7 @@ import { useChatRoom, type Pending } from "@/features/chat/useChatRoom";
 import { TradeCard } from "@/features/trades/TradeCard";
 import { formatPrice } from "@/lib/format";
 import { pickPhotos } from "@/lib/media";
+import { enablePush } from "@/lib/push";
 import { Chip } from "@/ui/Chip";
 import { GradeBadge } from "@/ui/GradeBadge";
 import { Header } from "@/ui/Header";
@@ -58,6 +59,10 @@ export default function ChatRoom() {
   const insets = useSafeAreaInsets();
   const keyboard = useKeyboardHeight();
   const [menu, setMenu] = useState<"chat" | "photo" | null>(null);
+  // The first chat is where the notification prompt appears (spec 4.16).
+  useEffect(() => {
+    void enablePush(true);
+  }, []);
 
   if (room === undefined) {
     return (

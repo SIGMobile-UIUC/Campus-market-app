@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "332197949304",
+    "project_id": "campusmarket-9fb5c",
+    "storage_bucket": "campusmarket-9fb5c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:332197949304:android:4f05c3ec2938130894628d",
+        "android_client_info": {
+          "package_name": "com.sigmobileuiuc.campusmarket"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD1PtkCtsXTpE_LPCxOXEMFwPqYyr49BYQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

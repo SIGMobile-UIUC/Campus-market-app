@@ -1044,12 +1044,12 @@ flowchart LR
         DB["Postgres<br/>public: RLS tables, RPC<br/>private: identity, evidence"]
         RT["Realtime<br/>private broadcast channels"]
         ST["Storage<br/>private buckets"]
-        FN["Edge Functions<br/>push, ingest, email codes,<br/>account deletion"]
-        CRON["pg_cron and pg_net<br/>jobs, webhooks"]
+        FN["Edge Functions<br/>ingest, email codes,<br/>account deletion"]
+        CRON["pg_cron and pg_net<br/>jobs, push sending"]
     end
     Auth --> Mail["Resend<br/>sign-in and notice emails"]
     FN --> Mail
-    FN --> Push["Expo Push"]
+    CRON --> Push["Expo Push<br/>FCM and APNs"]
     FN --> Sentry["Sentry"]
 ```
 
@@ -1061,7 +1061,7 @@ flowchart LR
 | Postgres `private` | Email, secondary email, analytics mapping, GPS check-ins, logs, raw events; never exposed through the API |
 | Realtime | Chat messages, trade cards and badge updates over private Broadcast channels |
 | Storage | `listing-photos`, `chat-images`, `dispute-evidence` (all private, signed URLs); `campus-assets` (public). Listing and chat photos move to Cloudflare R2 when egress nears the Pro allowance (section 4.7). |
-| Edge Functions | Push dispatch and receipts, photo and evidence purge, secondary email codes, account deletion |
+| Edge Functions | Photo and evidence purge, secondary email codes, account deletion (push is sent from the database through pg_net) |
 | pg_cron, pg_net | Scheduled jobs; HTTP calls that are sent only after commit |
 | Resend | Sign-in codes and account notices from a domain with SPF, DKIM and DMARC |
 
@@ -1482,9 +1482,10 @@ The internal dashboard shows points issued and spent per week by source and sink
 
 ### 4.16 Push and notifications
 
-- Webhooks (pg_net) on messages, trades, disputes, reviews and enforcement actions call `push-dispatch` after commit; a rolled-back change never sends a push.
-- `push-dispatch` checks per-type preferences, chat mute and lock-screen preview, writes a `notifications` row, and sends to every token of the recipient.
-- `push-receipts` removes tokens reported as `DeviceNotRegistered`. Logout deletes the device's token.
+- Triggers on messages, trades, trade confirmations and reviews (disputes and enforcement actions with DB-13 and DB-14) build the notification in the database and call the Expo push API through pg_net, which sends after commit; a rolled-back change never sends a push. No Edge Function sits in between.
+- The sending function (`private.push`) checks per-type preferences (`push_prefs`), chat mute and lock-screen preview, logs a `notifications` row for everything but chat messages (NTF-1), and sends to every token of the recipient, up to 100 messages per Expo request.
+- The `push-receipts` job (every 15 minutes) turns Expo's answers into tickets, asks for receipts of tickets older than 15 minutes, and removes tokens reported as `DeviceNotRegistered` at either step. Logout deletes the device's token.
+- Android delivery goes through FCM: the app ships `google-services.json`, and the FCM V1 service account key is stored in EAS credentials, not in the repository. Expo Go on Android cannot receive remote pushes, so testing push needs a development build.
 - The permission prompt appears at the first chat or first listing.
 
 ### 4.17 Data collection and insights
@@ -2486,8 +2487,17 @@ create table public.push_tokens (
 );
 
 create table private.push_tickets (
-  ticket_id  text primary key,
-  token      text not null,
+  ticket_id    text primary key,
+  token        text not null,
+  created_at   timestamptz not null default now(),
+  requested_at timestamptz                       -- when its receipt was asked for
+);
+
+create table private.push_requests (             -- pg_net requests waiting for Expo's answer
+  request_id bigint primary key,
+  kind       text not null check (kind in ('send', 'receipts')),
+  tokens     text[],                             -- send: each message's token, in order
+  tickets    text[],                             -- receipts: the tickets asked about
   created_at timestamptz not null default now()
 );
 
@@ -2743,6 +2753,8 @@ PostgREST returns HTTP 400 with `{ "code": "P0001", "message": "ITEM_UNAVAILABLE
 | `change_display_name(display_name, request_id)` | text, uuid | `{ display_name, points_spent, balance }` | `COOLDOWN_ACTIVE`, `INSUFFICIENT_POINTS`, `ALREADY_EXISTS`, `PROHIBITED_CONTENT` |
 | `set_consent(analytics, personalized_ads, policy_version)` | bool, bool, text | consent | `VALIDATION_FAILED` |
 | `update_settings(settings)` | jsonb (`lock_screen_preview`, `push_prefs`) | settings | `VALIDATION_FAILED` |
+| `register_push_token(token, platform)` | Expo push token, `ios` or `android` | none (a token used by another account moves to the caller) | `VALIDATION_FAILED` |
+| `unregister_push_token(token)` | text | none (only the caller's own token) | |
 | `my_account_status()` | none | `{ penalties[], active_actions[] }` (`appealable[]` from P1) | |
 | `log_events(events)` | jsonb: `[{event_id, name, occurred_at, session_id, screen, props, context}]`, at most 50 | `{ accepted }` | `FORBIDDEN` (no analytics consent), `VALIDATION_FAILED` (name or prop not in the catalog), `RATE_LIMITED` (1,000 per hour) |
 
@@ -2849,15 +2861,12 @@ Every admin function writes `private.admin_log` and checks the caller's role and
 
 | Function | Caller | Request | Response |
 | --- | --- | --- | --- |
-| `push-dispatch` | Database webhook (shared secret) | `{ type, record, old_record }` for `messages`, `trades`, `disputes`, `reviews`, `enforcement_actions` | 200 |
-| `push-receipts` | Daily maintenance job through pg_net (shared secret) | none | `{ checked, removed_tokens }` |
 | `media-purge` | Daily maintenance job through pg_net (shared secret) | none; reads due listings, disputes and chats itself | `{ listings, evidence, chats, chat_photos, objects_deleted }` |
 | `send-secondary-code` | App (JWT) | `{ email }` | 204; 429 after 3 per hour |
 | `verify-secondary-code` | App (JWT) | `{ code }` | 204; 400 on a wrong or expired code |
 | `delete-account` | App (JWT) | `{ code }` (a fresh school-email code) | 204; 409 if the user has an open dispute as respondent |
-| `register-push-token` | App (JWT) | `{ token, platform }` | 204 |
 
-Push payloads never include message text when the recipient has `lock_screen_preview` off.
+Push sending and receipts run in the database (section 4.16); devices register with `register_push_token(token, platform)` and `unregister_push_token(token)` (section 6.3). Push payloads never include message text when the recipient has `lock_screen_preview` off.
 
 ## Part 7: After the MVP
 

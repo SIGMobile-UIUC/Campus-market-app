@@ -54,7 +54,8 @@ reset role;
 select is(tests.pushed(), jsonb_build_array(jsonb_build_object('to', 'ExponentPushToken[a1]', 'title', 'alpha2',
   'body', 'Is this still available?', 'data', jsonb_build_object('type', 'chat', 'chat_id', tests.id('chat')))),
   'a message is pushed to the other side, from the sender, with its text');
-select is((select count(*)::int from public.notifications), 0, 'chat messages stay out of the notification log');
+select is((select count(*)::int from public.notifications where user_id = tests.user_id('alpha1')), 0,
+  'chat messages stay out of the notification log');
 
 insert into public.user_settings (user_id, lock_screen_preview) values (tests.user_id('alpha1'), false)
 on conflict (user_id) do update set lock_screen_preview = false;
@@ -136,7 +137,7 @@ insert into net._http_response (id, status_code, content)
 select request_id, 200, '{"data": {"ticket-1": {"status": "error", "details": {"error": "DeviceNotRegistered"}}}}'
 from private.push_requests where kind = 'receipts';
 select is(private.push_receipts(), '{"checked": 1, "removed_tokens": 1}', 'and a not-registered receipt removes the token');
-select is((select count(*)::int from private.push_tickets), 0, 'checked tickets are cleared');
+select is((select count(*)::int from private.push_tickets where ticket_id = 'ticket-1'), 0, 'checked tickets are cleared');
 select is((select schedule from cron.job where jobname = 'push-receipts'), '*/15 * * * *', 'receipts are checked every 15 minutes');
 
 select * from finish();

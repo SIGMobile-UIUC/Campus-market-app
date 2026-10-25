@@ -48,8 +48,9 @@ create table public.rank_stats (
   computed_at        timestamptz not null default now()
 );
 
+-- Users waiting for a recompute; removing a profile removes its entry.
 create table private.rank_dirty (
-  user_id   uuid primary key,
+  user_id   uuid primary key references public.profiles on delete cascade,
   marked_at timestamptz not null default now()
 );
 
@@ -153,50 +154,55 @@ begin
 
   -- ponytail: 500 users per run; loop within the run if that is ever short.
   for v_user in select user_id from private.rank_dirty order by marked_at limit 500 for update skip locked loop
-    select
-      count(*) filter (where t.counted)::int as counted_trades,
-      count(distinct t.partner) filter (where t.counted)::int as distinct_partners,
-      (select count(*)::int from public.reviews r where r.reviewee_id = v_user) as reviews_count,
-      (select coalesce(sum(r.rating), 0) from public.reviews r where r.reviewee_id = v_user) as rating_sum,
-      (select coalesce(sum(p.points), 0)::int from public.penalties p
-       where p.user_id = v_user and p.revoked_at is null and p.expires_at > now()) as penalty_points,
-      (select extract(day from now() - pr.created_at)::int from public.profiles pr where pr.id = v_user) as age_days
-    into v_stats
-    from (select case when tr.seller_id = v_user then tr.buyer_id else tr.seller_id end as partner,
-                 (tr.seller_id = v_user and tr.counted_seller) or (tr.buyer_id = v_user and tr.counted_buyer) as counted
-          from public.trades tr
-          where tr.status = 'completed' and v_user in (tr.seller_id, tr.buyer_id)) t;
+    -- One bad row must not hold back the rest; it stays queued and warns on every run.
+    begin
+      select
+        count(*) filter (where t.counted)::int as counted_trades,
+        count(distinct t.partner) filter (where t.counted)::int as distinct_partners,
+        (select count(*)::int from public.reviews r where r.reviewee_id = v_user) as reviews_count,
+        (select coalesce(sum(r.rating), 0) from public.reviews r where r.reviewee_id = v_user) as rating_sum,
+        (select coalesce(sum(p.points), 0)::int from public.penalties p
+         where p.user_id = v_user and p.revoked_at is null and p.expires_at > now()) as penalty_points,
+        (select extract(day from now() - pr.created_at)::int from public.profiles pr where pr.id = v_user) as age_days
+      into v_stats
+      from (select case when tr.seller_id = v_user then tr.buyer_id else tr.seller_id end as partner,
+                   (tr.seller_id = v_user and tr.counted_seller) or (tr.buyer_id = v_user and tr.counted_buyer) as counted
+            from public.trades tr
+            where tr.status = 'completed' and v_user in (tr.seller_id, tr.buyer_id)) t;
 
-    -- Median minutes to the first reply as the listing owner over 90 days (the score's reply factor).
-    select percentile_cont(0.5) within group (order by extract(epoch from first_reply - first_ask) / 60) into v_reply
-    from (select (select min(m.created_at) from public.messages m where m.chat_id = c.id and m.sender_id = c.member_id) as first_ask,
-                 (select min(m.created_at) from public.messages m where m.chat_id = c.id and m.sender_id = c.owner_id) as first_reply
-          from public.chats c
-          where c.owner_id = v_user and c.created_at > now() - interval '90 days') x
-    where first_reply > first_ask;
+      -- Median minutes to the first reply as the listing owner over 90 days (the score's reply factor).
+      select percentile_cont(0.5) within group (order by extract(epoch from first_reply - first_ask) / 60) into v_reply
+      from (select (select min(m.created_at) from public.messages m where m.chat_id = c.id and m.sender_id = c.member_id) as first_ask,
+                   (select min(m.created_at) from public.messages m where m.chat_id = c.id and m.sender_id = c.owner_id) as first_reply
+            from public.chats c
+            where c.owner_id = v_user and c.created_at > now() - interval '90 days') x
+      where first_reply > first_ask;
 
-    -- Bayesian rating: (prior x weight + sum of ratings) / (weight + reviews).
-    v_rating := ((v_rules ->> 'rating_prior')::numeric * (v_rules ->> 'rating_weight')::numeric + v_stats.rating_sum)
-                / ((v_rules ->> 'rating_weight')::numeric + v_stats.reviews_count);
-    select * into v_grade from private.rank_grade(v_stats.counted_trades, v_stats.distinct_partners, v_stats.reviews_count,
-                                                  v_rating, v_stats.age_days, v_stats.penalty_points, v_rules);
+      -- Bayesian rating: (prior x weight + sum of ratings) / (weight + reviews).
+      v_rating := ((v_rules ->> 'rating_prior')::numeric * (v_rules ->> 'rating_weight')::numeric + v_stats.rating_sum)
+                  / ((v_rules ->> 'rating_weight')::numeric + v_stats.reviews_count);
+      select * into v_grade from private.rank_grade(v_stats.counted_trades, v_stats.distinct_partners, v_stats.reviews_count,
+                                                    v_rating, v_stats.age_days, v_stats.penalty_points, v_rules);
 
-    insert into public.rank_stats (user_id, counted_trades, distinct_partners, reviews_count, rating_bayes, penalty_points,
-                                   account_age_days, score, tier, next_tier_progress, computed_at)
-    values (v_user, v_stats.counted_trades, v_stats.distinct_partners, v_stats.reviews_count, round(v_rating, 3),
-            v_stats.penalty_points, v_stats.age_days,
-            v_stats.counted_trades * v_rating
-              * case when v_reply <= (v_rules #>> '{reply_factor,fast_minutes}')::numeric
-                     then (v_rules #>> '{reply_factor,fast}')::numeric else (v_rules #>> '{reply_factor,default}')::numeric end,
-            v_grade.tier, v_grade.progress, now())
-    on conflict (user_id) do update set
-      counted_trades = excluded.counted_trades, distinct_partners = excluded.distinct_partners,
-      reviews_count = excluded.reviews_count, rating_bayes = excluded.rating_bayes,
-      penalty_points = excluded.penalty_points, account_age_days = excluded.account_age_days, score = excluded.score,
-      tier = excluded.tier, next_tier_progress = excluded.next_tier_progress, computed_at = excluded.computed_at;
-    update public.profiles set tier = v_grade.tier where id = v_user and tier is distinct from v_grade.tier;
-    delete from private.rank_dirty where user_id = v_user;
-    v_count := v_count + 1;
+      insert into public.rank_stats (user_id, counted_trades, distinct_partners, reviews_count, rating_bayes, penalty_points,
+                                     account_age_days, score, tier, next_tier_progress, computed_at)
+      values (v_user, v_stats.counted_trades, v_stats.distinct_partners, v_stats.reviews_count, round(v_rating, 3),
+              v_stats.penalty_points, v_stats.age_days,
+              v_stats.counted_trades * v_rating
+                * case when v_reply <= (v_rules #>> '{reply_factor,fast_minutes}')::numeric
+                       then (v_rules #>> '{reply_factor,fast}')::numeric else (v_rules #>> '{reply_factor,default}')::numeric end,
+              v_grade.tier, v_grade.progress, now())
+      on conflict (user_id) do update set
+        counted_trades = excluded.counted_trades, distinct_partners = excluded.distinct_partners,
+        reviews_count = excluded.reviews_count, rating_bayes = excluded.rating_bayes,
+        penalty_points = excluded.penalty_points, account_age_days = excluded.account_age_days, score = excluded.score,
+        tier = excluded.tier, next_tier_progress = excluded.next_tier_progress, computed_at = excluded.computed_at;
+      update public.profiles set tier = v_grade.tier where id = v_user and tier is distinct from v_grade.tier;
+      delete from private.rank_dirty where user_id = v_user;
+      v_count := v_count + 1;
+    exception when others then
+      raise warning 'rank-recompute: user % failed: %', v_user, sqlerrm;
+    end;
   end loop;
   return v_count;
 end;

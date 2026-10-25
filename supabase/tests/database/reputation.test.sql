@@ -2,7 +2,7 @@
 -- rank-recompute job (spec 1.7.1, 4.12, 6.7).
 begin;
 \ir _helpers.psql
-select plan(29);
+select plan(30);
 select tests.build_matrix();
 
 -- The grade rule with the configured values (1.7.1).
@@ -107,6 +107,11 @@ select private.rank_recompute();
 select is((select account_age_days from public.rank_stats where user_id = tests.user_id('alpha1')), 31,
   'passing an account-age threshold triggers a recompute');
 select is((select schedule from cron.job where jobname = 'rank-recompute'), '*/5 * * * *', 'the job runs every 5 minutes');
+-- A removed profile leaves nothing in the queue for the job to trip over.
+select tests.remember('gone', tests.create_user('gone@alpha.edu'));
+select private.mark_rank_dirty(tests.id('gone'));
+delete from public.profiles where id = tests.id('gone');
+select is_empty($$ select 1 from private.rank_dirty where user_id = tests.id('gone') $$, 'removing a profile removes its queue entry');
 
 select tests.login_as(tests.user_id('alpha2'));
 select is((select array_agg(user_id) from public.rank_stats), array[tests.user_id('alpha2')], 'users read only their own grade details');

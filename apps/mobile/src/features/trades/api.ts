@@ -39,13 +39,15 @@ export type Trade = {
   listing: { title: string } | null;
   seller: { display_name: string | null; tier: string } | null;
   buyer: { display_name: string | null; tier: string } | null;
+  // The caller's own review and the other side's review of them (reviews are visible to both parties).
+  reviews: { reviewer_id: string }[];
 };
 
 const TRADE_SELECT = `id, listing_id, chat_id, seller_id, buyer_id, proposed_by, status, total_cents, meet_at,
   place_text, proposed_at, accepted_at, completed_at, closed_at, cancelled_by, cancel_reason,
   items:trade_items(line, item_id, name, price_cents), trade_confirmations(user_id), spot:meetup_spots(name),
   listing:listings!trades_listing_id_fkey(title), seller:profiles!trades_seller_id_fkey(display_name, tier),
-  buyer:profiles!trades_buyer_id_fkey(display_name, tier)`;
+  buyer:profiles!trades_buyer_id_fkey(display_name, tier), reviews(reviewer_id)`;
 // Named foreign keys: trades also reach listings through items and profiles through confirmations.
 
 export async function fetchTrades(ids: string[]): Promise<Trade[] | null> {
@@ -77,6 +79,10 @@ export function formatMeet(iso: string): string {
 // The window in which Completed works (6.6): from 30 minutes before the meetup to 7 days after.
 export const canConfirmNow = (trade: Trade, now = Date.now()) =>
   now >= new Date(trade.meet_at).getTime() - 30 * 60_000;
+
+// Reviews are open for 14 days after completion (REP-1).
+export const canReviewNow = (trade: Trade, now = Date.now()) =>
+  !!trade.completed_at && now <= new Date(trade.completed_at).getTime() + 14 * 86_400_000;
 
 // Cancelling within 2 hours of the meetup is a late cancel (TRD-6).
 export const isLateCancel = (trade: Trade, now = Date.now()) =>

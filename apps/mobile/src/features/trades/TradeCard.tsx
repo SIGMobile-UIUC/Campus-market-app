@@ -10,6 +10,7 @@ import { TextLink } from "@/ui/TextLink";
 import {
   CANCEL_REASONS,
   canConfirmNow,
+  canReviewNow,
   isLateCancel,
   formatMeet,
   placeOf,
@@ -150,8 +151,9 @@ export function TradeActions({
               disabled={busy || !open}
               onPress={() =>
                 void run("confirm_trade").then((result) => {
-                  // ponytail: the review sheet (APP-11) follows here.
-                  if (result?.completed) Alert.alert("Trade completed", "Thanks for trading safely.");
+                  // The completion moment leads to the review (spec 3.8). ponytail: the points toast joins with DB-12.
+                  if (result?.completed)
+                    router.push({ pathname: "/review/[tradeId]", params: { tradeId: trade.id } });
                 })
               }
             />
@@ -171,6 +173,20 @@ export function TradeActions({
     );
   }
 
+  if (trade.status === "completed") {
+    if (trade.reviews.some((r) => r.reviewer_id === myId)) {
+      return <Text className="pt-1 text-[13px] text-muted">You reviewed this trade.</Text>;
+    }
+    return canReviewNow(trade) ? (
+      <View className="pt-1">
+        <Button
+          variant="secondary"
+          label="Leave a review"
+          onPress={() => router.push({ pathname: "/review/[tradeId]", params: { tradeId: trade.id } })}
+        />
+      </View>
+    ) : null;
+  }
   if (trade.status === "disputed") {
     return (
       <Text className="pt-1 text-[13px] text-muted">A problem was reported. An admin will review it.</Text>

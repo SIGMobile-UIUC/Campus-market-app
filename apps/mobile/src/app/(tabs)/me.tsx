@@ -9,6 +9,7 @@ import { Avatar } from "@/features/avatar/Avatar";
 import { rowToCard } from "@/features/listings/types";
 import { useMyListings, type MyListing } from "@/features/listings/useMyListings";
 import { errorMessage } from "@/lib/errors";
+import { disablePush } from "@/lib/push";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/ui/Button";
 import { GradeBadge } from "@/ui/GradeBadge";
@@ -131,7 +132,7 @@ export default function Me() {
         <Button
           variant="secondary"
           label="Sign out"
-          onPress={() => void supabase.auth.signOut({ scope: "local" })}
+          onPress={() => void disablePush().finally(() => supabase.auth.signOut({ scope: "local" }))}
         />
       </View>
 

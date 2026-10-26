@@ -7,6 +7,7 @@ import { useAccount } from "@/features/account/account";
 import { CONDITIONS } from "@/features/listings/types";
 import { errorField, errorMessage } from "@/lib/errors";
 import type { UploadedPhoto } from "@/lib/media";
+import { enablePush } from "@/lib/push";
 import { Button } from "@/ui/Button";
 import { Chip } from "@/ui/Chip";
 import { ListingCard, type ListingCardData } from "@/ui/ListingCard";
@@ -85,6 +86,8 @@ export function usePost() {
       setStatus(null);
       // The new listing replaces the editor, so Back from it returns to where Sell was opened.
       router.replace({ pathname: "/listing/[id]", params: { id: listing.id } });
+      // The first listing is the other place the notification prompt appears (spec 4.16).
+      void enablePush(true);
     } catch (e) {
       setStatus(null);
       setError({ text: errorMessage(e), field: errorField(e) });

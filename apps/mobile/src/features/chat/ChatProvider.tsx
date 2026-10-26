@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import * as Notifications from "expo-notifications";
 import { AppState } from "react-native";
 
+import { enablePush, openNotification } from "@/lib/push";
 import { supabase } from "@/lib/supabase";
 
 type ChatState = {
@@ -26,6 +28,18 @@ export function ChatProvider({ userId, children }: { userId: string | null; chil
       if (data) setUnread((data as { total: number }).total);
     });
   }, []);
+
+  // A device that already allowed notifications refreshes its token; a tapped notification, including
+  // the one that launched the app, opens its chat or trade.
+  useEffect(() => {
+    if (!userId) return;
+    void enablePush(false);
+    void Notifications.getLastNotificationResponseAsync().then(
+      (response) => response && openNotification(response),
+    );
+    const tapped = Notifications.addNotificationResponseReceivedListener(openNotification);
+    return () => tapped.remove();
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) return;

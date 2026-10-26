@@ -22,7 +22,7 @@ select set_eq(
         'reopen_listing', 'delete_listing', 'mark_sold_elsewhere', 'favorite_counts',
         'get_or_create_chat', 'send_message', 'mark_read', 'set_chat_muted', 'leave_chat',
         'propose_trade', 'accept_trade', 'decline_trade', 'withdraw_trade', 'cancel_trade', 'confirm_trade',
-        'submit_review'],
+        'submit_review', 'register_push_token', 'unregister_push_token'],
   'security definer functions in public match the allowlist'
 );
 

@@ -4,3 +4,5 @@ ios
 android
 dist
 package-lock.json
+# Downloaded from Firebase as is
+google-services.json

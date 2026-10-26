@@ -169,8 +169,8 @@ const TRADE_TEXT: Record<string, string> = {
   failed: "Trade failed",
 };
 
-// What a system message says, for the timeline and the list preview. ponytail: trade steps show as
-// one line until the trade cards of APP-10.
+// What a system message says, for the timeline and the list preview. Trade steps are one line here;
+// the trade card shows the current state.
 export function systemText(meta: Message["meta"], myId: string, partnerName: string): string {
   const who = meta?.user_id === myId ? "You" : partnerName;
   if (meta?.event === "left") return `${who} left the chat`;

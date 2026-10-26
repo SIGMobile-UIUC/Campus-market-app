@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAccount } from "@/features/account/account";
 import { openChat } from "@/features/chat/api";
 import { Avatar, type Loadout } from "@/features/avatar/Avatar";
-import { conditionLabel } from "@/features/listings/types";
+import { conditionLabel, paymentLabel } from "@/features/listings/types";
 import { errorMessage } from "@/lib/errors";
 import { formatAgo, formatPrice } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
@@ -86,17 +86,8 @@ async function fetchListing(id: string): Promise<{ listing: Listing | null | "fa
   return { listing: (data as unknown as Listing) ?? null, saved: !!favorite.data };
 }
 
-const PAYMENT_LABELS: Record<string, string> = {
-  cash: "Cash",
-  venmo: "Venmo",
-  zelle: "Zelle",
-  paypal: "PayPal",
-  apple_pay: "Apple Pay",
-  cash_app: "Cash App",
-};
-
-// Listing page (spec 3.3). ponytail: trade count and reply time come with trades and chat (M3), the
-// meetup map and similar items (DSC-6, P1) later; saves count for sellers comes with My listings (APP-20).
+// Listing page (spec 3.3). The seller's trade count and reply time come with the public profile (APP-21);
+// the meetup map and similar items (DSC-6) are P1.
 export default function ListingPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session } = useAccount();
@@ -329,7 +320,7 @@ function Summary({ listing }: { listing: Listing }) {
   const chips = [
     item ? conditionLabel(item.condition) : null,
     item?.negotiable ? "Open to offers" : null,
-    ...listing.payment_methods.map((p) => PAYMENT_LABELS[p] ?? p),
+    ...listing.payment_methods.map(paymentLabel),
   ].filter(Boolean) as string[];
   const status =
     listing.status === "sold_out"

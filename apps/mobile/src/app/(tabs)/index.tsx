@@ -17,7 +17,7 @@ import { useTheme } from "@/ui/theme";
 
 // Home (spec 3.3, DSC-12): search, shopping modes, categories, move-out sales, wanted requests and the
 // newest listings, all in the current market. Modules with nothing to show are hidden.
-// ponytail: "Picked for you" needs viewing history (DSC-5, P1) and "Hot this week" needs engagement
+// Later: "Picked for you" needs viewing history (DSC-5, P1) and "Hot this week" needs engagement
 // events (DB-15); until then the grid is the newest listings.
 export default function Home() {
   const { campus, colors } = useTheme();

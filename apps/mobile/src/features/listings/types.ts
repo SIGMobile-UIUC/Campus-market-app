@@ -40,6 +40,17 @@ export const CONDITIONS = [
 
 export const conditionLabel = (id: string) => CONDITIONS.find(([key]) => key === id)?.[1] ?? id;
 
+export const PAYMENTS = [
+  ["cash", "Cash"],
+  ["venmo", "Venmo"],
+  ["zelle", "Zelle"],
+  ["paypal", "PayPal"],
+  ["apple_pay", "Apple Pay"],
+  ["cash_app", "Cash App"],
+] as const;
+
+export const paymentLabel = (id: string) => PAYMENTS.find(([key]) => key === id)?.[1] ?? id;
+
 export type Sort = "newest" | "price_asc" | "price_desc";
 
 // search_listings filters (spec 6.4); empty values are left out of the request.

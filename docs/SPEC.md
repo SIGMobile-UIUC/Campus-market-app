@@ -993,7 +993,7 @@ Grade-locked items show a lock with the grade badge; campus-only items show the 
 | --- | --- |
 | Routing | Expo Router with `(auth)`, `(tabs)` and modal groups |
 | Theme | `ThemeProvider` builds tokens from the current market and color scheme |
-| App state | React Context for session, market and theme; TanStack Query for server data. No global store library until one is needed. |
+| App state | React Context for session, market and theme; feature hooks call supabase-js for server data. No global store library until one is needed. |
 | Lists | FlashList |
 | Images | WebP compressed on the phone (section 4.7.1); expo-image with blurhash placeholders, `cacheKey` = storage path, one retry with a fresh signed URL |
 | Camera and location | expo-camera for evidence photos; expo-location, foreground only, for "I'm here" |
@@ -1071,7 +1071,7 @@ flowchart LR
 | --- | --- |
 | App | Expo (React Native), TypeScript, Expo Router. Open source and free; only the optional EAS cloud services are paid. |
 | Styling | NativeWind (Tailwind syntax); neutrals and campus colors are CSS variables set at runtime by the theme provider, so dark mode and every campus share one set of class names |
-| App state | TanStack Query for server data, React Context for session, market and theme |
+| App state | Feature hooks over supabase-js for server data, React Context for session, market and theme |
 | Lists, images, camera, location | FlashList, expo-image, expo-camera, expo-location |
 | Graphics | Reanimated, react-native-svg |
 | Validation | zod in the app; Edge Functions validate their own inputs |
@@ -1092,9 +1092,8 @@ apps/mobile/
 supabase/
   migrations/             SQL migrations (source of truth for the schema)
   functions/              Edge Functions
-  tests/                  pgTAP: RLS matrix, functions, function-security lint
-  seed.sql                campuses, domains, zones, spots, shop items, rules v1
-tests/race/               concurrency tests against local Supabase
+  tests/                  pgTAP: RLS matrix, functions, function-security lint, concurrency over dblink
+  seed.sql                demo campuses, domains, zones and spots (categories, shop items and rules are migrations)
 docs/                     this documentation
 ```
 
@@ -1388,7 +1387,7 @@ Completion runs in one transaction, whether triggered by a user or by the job:
 #### 4.13.2 Earning
 
 ```sql
-create function private.award_points(p_user uuid, p_source text, p_ref text)
+create function private.award_points(p_user uuid, p_source text, p_ref text, p_points integer default null)
 returns integer language plpgsql security definer set search_path = '' as $$
 declare
   v_rules  jsonb := private.config('points_rules');      -- app_config value
@@ -1409,7 +1408,8 @@ begin
 
   v_day := date_trunc('day', now() at time zone v_tz) at time zone v_tz;
 
-  select coalesce(sum(delta) filter (where kind = 'earn'), 0),
+  select coalesce(sum(delta) filter (where kind = 'earn'      -- outside-cap sources do not use it up
+                                       and not coalesce((v_rules -> 'earn' -> source ->> 'outside_cap')::boolean, false)), 0),
          count(*) filter (where kind = 'earn' and source = p_source)
   into v_today, v_source_today
   from public.points_ledger
@@ -1420,7 +1420,7 @@ begin
     return 0;
   end if;
 
-  v_grant := (v_rule ->> 'points')::int;
+  v_grant := coalesce(p_points, (v_rule ->> 'points')::int);   -- check_in passes 25 on a 7th day
   if not coalesce((v_rule ->> 'outside_cap')::boolean, false) then
     v_grant := least(v_grant, greatest((v_rules ->> 'daily_cap')::int - v_today, 0));
   end if;
@@ -1717,7 +1717,7 @@ The MVP demo fits the free plans; the public beta needs Supabase Pro from day on
 | Level | Tool | MVP | From the beta |
 | --- | --- | --- | --- |
 | Database | pgTAP | RLS matrix for every table (same campus, other campus, waitlist school, general user, suspended, banned, admin of another campus); reservation, trade completion and points functions; function security lint | Every function's rules and error codes; state machine transitions |
-| Concurrency | `tests/race` scripts | Double reservation (#2), completion racing the job (#4, #5) and the points cap (#7) with 20 parallel calls | The rest of section 4.18 |
+| Concurrency | pgTAP with dblink sessions (`races.test.sql`) | Double reservation (#2), completion racing the job (#4, #5), the points cap (#7) and the other races of section 4.18 | Disputes against the job (with DB-14) |
 | Unit | Jest | Formatters, analytics queue, safety-warning patterns, error mapping | Hooks with React Native Testing Library |
 | End to end | Maestro | None | Sign-up with the local mail catcher, listings, meetup trade, dispute, review, purchase |
 | Manual | Real devices | School inbox delivery, push on both platforms, EXIF removal | GPS check-in at real spots |
@@ -2824,8 +2824,8 @@ Evidence photos are uploaded to the private `dispute-evidence` bucket under `{di
 
 | Function | Params | Returns | Errors |
 | --- | --- | --- | --- |
-| `get_wallet()` (invoker) | none | `{ balance, earned_today, daily_cap }` | |
-| `points_history(cursor, limit)` (invoker) | jsonb, int | ledger rows with reason labels | |
+| `get_wallet()` | none | `{ balance, earned_today, daily_cap }` | `AUTH_REQUIRED` |
+| `points_history(cursor, limit)` (invoker) | bigint (last row id), int | `{ rows, next_cursor }`, rows with reason labels | |
 | `check_in()` | none | `{ checked_in, streak, points_awarded }` (`checked_in: false` if already done today) | `ACCOUNT_SUSPENDED` |
 | `purchase_item(item_id, purchase_id)` | uuid, uuid | `{ purchase, balance }` | `INSUFFICIENT_POINTS`, `ALREADY_OWNED`, `ITEM_NOT_FOR_SALE`, `TIER_REQUIRED` |
 | `equip_item(slot, item_id)` | `item_slot`, uuid or null (unequip) | loadout | `FORBIDDEN` (not owned), `VALIDATION_FAILED` (wrong slot) |
@@ -2953,4 +2953,4 @@ Escrow comes after the MVP, and shipping trades come with it: every shipped trad
 | SAF-7 to SAF-9 | 4.15 | enforcement_actions, private.admin_log (appeals from P1) | admin functions | Case view, Account status |
 | INS-1 to INS-4 | 4.17 | consents, private.events, aggregates | `set_consent`, `log_events` | Rules and consent, Settings |
 | INS-5, INS-6 | 4.17.8 | sponsored_deals, private.user_interests, surveys, survey_responses | P2 | Feed deal slot, Surveys |
-| NTF-1 | 4.16 | notifications, push_tokens | `push-dispatch` | Notification center |
+| NTF-1 | 4.16 | notifications, push_tokens | `private.push` triggers, `register_push_token` | Notification center |

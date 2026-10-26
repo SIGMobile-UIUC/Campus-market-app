@@ -10,7 +10,7 @@ import { Header } from "@/ui/Header";
 import { useTheme } from "@/ui/theme";
 
 // Search from the home search bar (spec 3.3): typo-tolerant search in the current market with the
-// filter sheet. ponytail: recent searches arrive with on-device history (DSC-5, P1).
+// filter sheet. Recent searches arrive with on-device history (DSC-5, P1).
 export default function Search() {
   const { campus, colors } = useTheme();
   const scope = useScope();

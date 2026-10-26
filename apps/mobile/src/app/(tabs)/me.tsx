@@ -25,7 +25,7 @@ const TABS: [Tab, string, (l: MyListing) => boolean][] = [
   ["sold", "Sold", (l) => l.status === "sold_out"],
 ];
 
-// Me (spec 3.3) with My listings (APP-20). ponytail: grade card, wallet, check-in and shop arrive with
+// Me (spec 3.3) with My listings (APP-20). Grade card, wallet, check-in and shop arrive with
 // APP-12; sign-out moves into Settings (APP-19). The avatar frame follows the grade once grades show.
 export default function Me() {
   const { campus, colors } = useTheme();

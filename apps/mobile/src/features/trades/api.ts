@@ -76,7 +76,7 @@ export function formatMeet(iso: string): string {
   return `${date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} · ${date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
 }
 
-// The window in which Completed works (6.6): from 30 minutes before the meetup to 7 days after.
+// Completed opens 30 minutes before the meetup (6.6). Seven days after it, the trades job closes the trade.
 export const canConfirmNow = (trade: Trade, now = Date.now()) =>
   now >= new Date(trade.meet_at).getTime() - 30 * 60_000;
 

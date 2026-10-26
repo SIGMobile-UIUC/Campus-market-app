@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 
 import { useAccount } from "@/features/account/account";
+import { PAYMENTS } from "@/features/listings/types";
 import { supabase } from "@/lib/supabase";
 import { Chip } from "@/ui/Chip";
 import { Field } from "@/ui/Field";
@@ -20,15 +21,6 @@ export const NO_TRADE_OPTIONS: TradeOptionsValue = {
   alsoOpen: false,
   zip: "",
 };
-
-const PAYMENTS = [
-  ["cash", "Cash"],
-  ["venmo", "Venmo"],
-  ["zelle", "Zelle"],
-  ["paypal", "PayPal"],
-  ["apple_pay", "Apple Pay"],
-  ["cash_app", "Cash App"],
-] as const;
 
 // Spec 3.3 Trade options: meetup zone for students of a live campus, ZIP code for general users,
 // payment methods, and "Also show in the open market" (students, off by default).

@@ -28,7 +28,7 @@ async function load(tradeId: string): Promise<{ trade: Trade; tags: Tags } | nul
 }
 
 // Review sheet (REP-1, APP-11): 1 to 5 stars, tags from the configured list and an optional comment,
-// once per side within 14 days of completion. ponytail: the review points toast joins with DB-12.
+// once per side within 14 days of completion. The points toast comes with the wallet (APP-12).
 export default function Review() {
   const { tradeId } = useLocalSearchParams<{ tradeId: string }>();
   const { session } = useAccount();

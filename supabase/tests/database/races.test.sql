@@ -1,13 +1,13 @@
 -- TST-2: races between real sessions (spec 4.18): two acceptances of one item, a confirmation against
 -- the trades-advance job both ways, two completions of one pair, two opens of one chat, and accept
--- against withdraw. Dispute against the job joins with DB-14.
+-- against withdraw, and two awards near the daily points cap. Dispute against the job joins with DB-14.
 --
 -- The other sessions are dblink connections, so their writes commit and their locks are real; they
 -- set up their own users and listings and remove them at the end. A non-superuser may use dblink only
 -- with a password login, so they connect over the network address this session came in on (the local
 -- socket and loopback are trust logins); the local stack's postgres password is "postgres".
 begin;
-select plan(15);
+select plan(17);
 create extension if not exists dblink with schema extensions;
 -- Refusals in the other sessions are expected; dblink would print each as a notice.
 set local client_min_messages = warning;
@@ -90,7 +90,7 @@ select who, pg_temp.value('setup', format($q$
   insert into auth.users (id, instance_id, aud, role, email, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
   values (gen_random_uuid(), '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', %L, now(), '{}', '{}', now(), now())
   returning id$q$, 'race-' || who || '-' || substr(md5(random()::text), 1, 8) || '@illinois.edu'))::uuid
-from unnest(array['seller', 'buyer1', 'buyer2', 'buyer3']) who;
+from unnest(array['seller', 'buyer1', 'buyer2', 'buyer3', 'earner']) who;
 select pg_temp.run('setup', format($q$update public.profiles set display_name = 'race_' || substr(md5(id::text), 1, 12)
                                     where id in (%L, %L, %L, %L)$q$,
                                     pg_temp.id('seller'), pg_temp.id('buyer1'), pg_temp.id('buyer2'), pg_temp.id('buyer3')));
@@ -213,6 +213,15 @@ select ok(pg_temp.waiting('seller2'), 'a second open of the same chat waits for 
 select pg_temp.run('buyer1', 'commit');
 select is(pg_temp.result('seller2') || ' ' || pg_temp.value('setup', format($q$select count(*) from public.chats where listing_id = %L$q$, pg_temp.id('lamp'))),
   'false 1', 'opening one chat twice at once gives one chat');
+
+-- 7. Two awards near the daily cap (4.18 #7): the wallet lock makes the second see the first.
+select pg_temp.value('setup', format('select private.award_points(%L, %L, %L, 190)', pg_temp.id('earner'), 'checkin', 'race-base'));
+select pg_temp.hold('setup', format('private.award_points(%L, %L, %L)', pg_temp.id('earner'), 'review', 'race-a'));
+select pg_temp.start('job', format('select private.award_points(%L, %L, %L)', pg_temp.id('earner'), 'review', 'race-b'));
+select ok(pg_temp.waiting('job'), 'a second award waits for the first');
+select pg_temp.run('setup', 'commit');
+select is(pg_temp.result('job') || ' ' || pg_temp.value('setup', format($q$select balance from public.wallets where user_id = %L$q$, pg_temp.id('earner'))),
+  '0 200', 'and then earns nothing past the cap');
 
 -- Remove everything the connections made, including what a failed earlier run left behind.
 select pg_temp.cleanup();

@@ -52,7 +52,7 @@ docs/                   SPEC.md, this plan
 
 Staging Supabase setup, since `config.toml` applies only locally: keep Confirm email on; set the email OTP length to 6; paste `supabase/templates/code.html` into the confirmation and magic link templates; enable the Before User Created hook with `private.hook_before_user_created`; use Resend as the custom SMTP; add a random Vault secret named `email_hmac_key`.
 
-After a merge, the `staging` job in CI applies new migrations once the database checks pass. Its secrets (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`) and variable (`SUPABASE_PROJECT_REF`) live in the GitHub `staging` environment, which only `main` may deploy from.
+After a merge, the `staging` job in CI applies new migrations once the database checks pass. Its secrets (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_REF`) live in the GitHub `staging` environment, which only `main` may deploy from.
 
 Needed before week 2: a Supabase organization owned by the team, an Expo account, a sending domain for Resend (SPF, DKIM, DMARC), and secrets stored in GitHub Actions and EAS. Needed before iOS builds: an Apple Developer account ($99 per year). Android dev builds work without a store account.
 

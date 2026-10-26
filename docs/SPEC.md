@@ -1474,15 +1474,18 @@ The internal dashboard shows points issued and spent per week by source and sink
 ### 4.15 Moderation and enforcement
 
 - **Queue:** `admin_queue` merges open reports and disputes in `under_review` for the admin's campus, oldest first; super admins also see the open-market queue.
-- **Auto-hide:** the report trigger locks the listing row before counting distinct open reporters, so the 2nd and 3rd reports cannot both count 2.
+- **Reports:** reasons come from `app_config.report_reasons` (public). A report records whose listing, account or message it is and the campus that reviews it: the target's campus while it is live, otherwise the open-market queue.
+- **Auto-hide:** `report()` locks the listing row before inserting and counting distinct open reporters, so the 2nd and 3rd reports cannot both count 2.
 - **Authority limits:** `admin_enforce` checks the limits in [Policies](#authority): campus admins up to a 7-day suspension in their campus, super admins everything.
 - **Append-only logs:** update and delete are revoked from every role on `enforcement_actions` and `private.admin_log`. Every admin function, including each view of private data, writes one `admin_log` row.
-- **Effects:** suspensions and bans set `profiles.status` through a trigger on new actions; the `enforcement-lift` job ends suspensions on time. A ban also writes a permanent tombstone.
+- **Effects:** suspensions and bans set `profiles.status` through a trigger on new actions; the `enforcement-lift` job ends suspensions on time. A ban also writes a permanent tombstone. Every action reaches the user by push and in the notification center (type `account`).
+- **Hiding:** a hidden listing stays visible to its owner with the reason. A hidden message keeps no text or photo; its content moves to `private.hidden_messages` until an admin restores it, and the case view still shows it.
+- **Resolving:** resolving a report closes every open report on the same target. Dismissing restores a listing that reports hid; upholding with `harassment` adds the 3-point penalty (section 1.7.1).
 - **From P1:** feature restrictions (checked by `private.require_user()` per scope), appeals (`file_appeal` once per subject within 14 days; `admin_decide_appeal` by a different admin, `where status = 'open'`; an overturn revokes penalties, ends actions and restores reversed points), long suspensions and bans proposed by campus admins and approved by super admins, and the conflict-of-interest check (`CONFLICT_OF_INTEREST`).
 
 ### 4.16 Push and notifications
 
-- Triggers on messages, trades, trade confirmations and reviews (disputes and enforcement actions with DB-13 and DB-14) build the notification in the database and call the Expo push API through pg_net, which sends after commit; a rolled-back change never sends a push. No Edge Function sits in between.
+- Triggers on messages, trades, trade confirmations, reviews and enforcement actions (disputes with DB-14) build the notification in the database and call the Expo push API through pg_net, which sends after commit; a rolled-back change never sends a push. No Edge Function sits in between.
 - The sending function (`private.push`) checks per-type preferences (`push_prefs`), chat mute and lock-screen preview, logs a `notifications` row for everything but chat messages (NTF-1), and sends to every token of the recipient, up to 100 messages per Expo request.
 - The `push-receipts` job (every 15 minutes) turns Expo's answers into tickets, asks for receipts of tickets older than 15 minutes, and removes tokens reported as `DeviceNotRegistered` at either step. Logout deletes the device's token.
 - Android delivery goes through FCM: the app ships `google-services.json`, and the FCM V1 service account key is stored in EAS credentials, not in the repository. Expo Go on Android cannot receive remote pushes, so testing push needs a development build.
@@ -1633,7 +1636,7 @@ From records rather than events (GA4 equivalents in brackets): sign-up and onboa
 | 16 | Socket drops | Missed messages | Gap fill by `seq` |
 | 17 | Read markers from two devices | Unread count jumps back | `greatest()` |
 | 18 | New listings while scrolling | Duplicates and gaps | Keyset pagination; client de-duplication for bumps |
-| 19 | 2nd and 3rd reports together | Listing never auto-hidden | Listing row lock in the report trigger |
+| 19 | 2nd and 3rd reports together | Listing never auto-hidden | Listing row lock in `report()` |
 | 20 | Dispute resolved twice | Double penalties | Conditional status update; penalty unique key |
 | 21 | Appeal decided by two admins (P1) | Conflicting outcomes | `where status = 'open'` |
 | 22 | Rank values change during a job run | Mixed values in one run | Values read once per run; full recompute queued after the change |
@@ -2417,6 +2420,7 @@ create table public.reports (
   reporter_id uuid not null references public.profiles,
   target_type public.report_target not null,
   target_ref  text not null,               -- listing id, user id, or chat_id:seq
+  target_user_id   uuid not null references public.profiles,   -- whose listing, account or message
   target_campus_id uuid references public.campuses,   -- null: open-market queue (super admins)
   reason      text not null,
   note        text check (char_length(note) <= 1000),
@@ -2448,7 +2452,19 @@ create table public.enforcement_actions (
   ends_at     timestamptz,                 -- null for warnings, removals and bans
   decided_by  uuid not null references public.profiles,
   note        text,
-  created_at  timestamptz not null default now()
+  created_at  timestamptz not null default now(),
+  check ((ends_at is not null) = (kind in ('suspension', 'restriction')))
+);
+
+create table private.hidden_messages (           -- content of hidden messages, until a restore
+  chat_id    uuid not null,
+  seq        bigint not null,
+  body       text,
+  image_path text,
+  hidden_by  uuid not null references public.profiles,
+  hidden_at  timestamptz not null default now(),
+  primary key (chat_id, seq),
+  foreign key (chat_id, seq) references public.messages on delete cascade
 );
 
 create table public.appeals (                    -- P1
@@ -2474,7 +2490,7 @@ create table private.admin_log (
 );
 ```
 
-`enforcement_actions` and `private.admin_log` are append-only: `update` and `delete` are revoked from every role. An action is in effect while it has not ended (and, from P1, no appeal on it is `overturned`); the view `active_enforcement` applies that rule. Feature restrictions use `scope` from P1. Long-suspension and ban approvals add `approved_by` columns in P1.
+`enforcement_actions` and `private.admin_log` are append-only: `update`, `delete` and `truncate` are revoked from every role, and a statement trigger refuses them for the owner too. An action is in effect while it has not ended (and, from P1, no appeal on it is `overturned`). Feature restrictions use `scope` from P1. Long-suspension and ban approvals add `approved_by` columns in P1.
 
 #### 5.3.11 Notifications and configuration
 
@@ -2835,8 +2851,8 @@ Evidence photos are uploaded to the private `dispute-evidence` bucket under `{di
 
 | Function | Params | Returns | Errors |
 | --- | --- | --- | --- |
-| `report(target_type, target_ref, reason, note)` | `listing` / `user` / `message`, text, text, text | report | `ALREADY_EXISTS`, `NOT_FOUND`, `RATE_LIMITED` (10 per day) |
-| `block_user(user_id)`, `unblock_user(user_id)` | uuid | none | `SELF_ACTION` |
+| `report(target_type, target_ref, reason, note)` | `listing` / `user` / `message`, text, text, text | report | `ALREADY_EXISTS`, `NOT_FOUND` (not visible to the reporter), `SELF_ACTION`, `RATE_LIMITED` (10 per day), `VALIDATION_FAILED` (unknown reason) |
+| `block_user(user_id)`, `unblock_user(user_id)` | uuid | none | `SELF_ACTION`, `NOT_FOUND` |
 | `file_appeal(subject_type, subject_id, statement, photo_paths)` (P1) | `enforcement` / `dispute` / `penalty`, uuid, text, text[] | appeal | `FORBIDDEN`, `WINDOW_CLOSED` (after 14 days), `ALREADY_EXISTS` |
 
 ### 6.10 Admin
@@ -2845,11 +2861,11 @@ Every admin function writes `private.admin_log` and checks the caller's role and
 
 | Function | Role | Does |
 | --- | --- | --- |
-| `admin_queue(filters, cursor)` | campus admin | Open reports and disputes for the campus (appeals from P1), oldest first, with SLA age; super admins also get the open-market queue |
-| `admin_open_case_data(case_type, case_id, resource)` | campus admin | Returns a reported chat, evidence or check-ins for an open case; writes the admin log |
+| `admin_queue()` | campus admin | Open cases for the campus, one per target with its report count and reasons (disputes from DB-14, appeals from P1), oldest first, with SLA age; super admins also get the open-market queue. The 200 oldest, no paging yet |
+| `admin_open_case_data(case_type, case_id, resource)` | campus admin | Returns a reported chat (`chat`, the 50 messages either side, hidden content included), and with disputes evidence or check-ins, for an open case; the call is the logged view |
 | `admin_resolve_dispute(dispute_id, outcome, bad_faith, note)` | campus admin | Upholds or rejects; applies penalties, trade transition and point reversal |
-| `admin_resolve_report(report_id, outcome, note)` | campus admin | Actions or dismisses a report |
-| `admin_set_hidden(target_type, target_id, hidden, reason)` | campus admin | Hides or restores a listing or message |
+| `admin_resolve_report(report_id, outcome, harassment, note)` | campus admin | Actions or dismisses every open report on the target; `harassment` adds the penalty |
+| `admin_set_hidden(target_type, target_ref, hidden, reason)` | campus admin | Hides (with a reason) or restores a listing or message |
 | `admin_enforce(user_id, kind, duration, reason_code, policy_ref, case_type, case_id, note)` | campus admin within limits | Creates an enforcement action; campus admins up to a 7-day suspension, super admins anything (proposals for approval from P1) |
 | `admin_correct_points(user_id, delta, note)` | super admin | Correction up to 1,000 points per call |
 | `admin_set_config(key, value)` | super admin | Changes an `app_config` value such as `rank_rules` or `points_rules`; a rank change queues every user for recompute |

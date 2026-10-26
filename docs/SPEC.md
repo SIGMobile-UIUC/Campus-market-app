@@ -1361,7 +1361,7 @@ Completion runs in one transaction, whether triggered by a user or by the job:
 - **Photos:** taken through expo-camera inside the app; the gallery picker is not offered for evidence. The server records upload time. A modified client could still upload an old photo, which is why a human reviews photo evidence.
 - **GPS check-in:** `meetup_checkin` is accepted only within 30 minutes of `meet_at`, once per user per trade. The server computes the haversine distance to the spot and stores `valid = distance <= radius_m and accuracy_m <= 100 and not mocked`. `mocked` comes from expo-location on Android; iOS offers no reliable flag, so GPS stays evidence. Trades with a free-text place have no coordinates, and their no-show claims always go to a human.
 - **Automatic rule:** at `response_due_at`, the job upholds a no-show claim when the claimant's check-in is valid, the respondent has no valid check-in and the respondent submitted nothing. Every other case moves to `under_review`.
-- **Resolution transaction:** lock trade and dispute; set the outcome; insert penalties (unique per source, so a retry cannot double them); move the trade to `failed` or `cancelled` per [Data Model](#trade); when a decision touches a completed trade (appeals from P1, escrow claims later), reverse its point awards with `reversal` rows, allowing negative balances; release reserved items; mark both users rank-dirty; notify both.
+- **Resolution transaction:** lock trade and dispute; set the outcome; insert penalties (unique per source, so a retry cannot double them); once the trade's last open dispute closes, move it to `failed` (a claim upheld) or `cancelled` (claims rejected) per [Data Model](#trade), or back to `accepted` when every claim was withdrawn; when a decision touches a completed trade (appeals from P1, escrow claims later), reverse its point awards with `reversal` rows, allowing negative balances; release reserved items; mark both users rank-dirty; notify both.
 - **Purpose limit:** check-ins and evidence are in `private` or private buckets, read by admins only through `admin_open_case_data`, which writes the admin log. They never enter analytics.
 
 ### 4.12 Reviews and rank engine
@@ -1485,7 +1485,7 @@ The internal dashboard shows points issued and spent per week by source and sink
 
 ### 4.16 Push and notifications
 
-- Triggers on messages, trades, trade confirmations, reviews and enforcement actions (disputes with DB-14) build the notification in the database and call the Expo push API through pg_net, which sends after commit; a rolled-back change never sends a push. No Edge Function sits in between.
+- Triggers on messages, trades, trade confirmations, reviews, disputes and enforcement actions build the notification in the database and call the Expo push API through pg_net, which sends after commit; a rolled-back change never sends a push. No Edge Function sits in between.
 - The sending function (`private.push`) checks per-type preferences (`push_prefs`), chat mute and lock-screen preview, logs a `notifications` row for everything but chat messages (NTF-1), and sends to every token of the recipient, up to 100 messages per Expo request.
 - The `push-receipts` job (every 15 minutes) turns Expo's answers into tickets, asks for receipts of tickets older than 15 minutes, and removes tokens reported as `DeviceNotRegistered` at either step. Logout deletes the device's token.
 - Android delivery goes through FCM: the app ships `google-services.json`, and the FCM V1 service account key is stored in EAS credentials, not in the repository. Expo Go on Android cannot receive remote pushes, so testing push needs a development build.
@@ -1622,7 +1622,7 @@ From records rather than events (GA4 equivalents in brackets): sign-up and onboa
 | 2 | Two proposals for one item accepted at once | Item reserved twice | Conditional reservation of all items or none |
 | 3 | Accept and withdraw at the same moment | Accepted trade the proposer withdrew | Both update `where status = 'proposed'` |
 | 4 | User confirms while the job auto-completes | Completed twice, double points | Conditional status update; ledger unique key |
-| 5 | Dispute opened while the job auto-completes | Trade completes with an open dispute | Both lock the trade row; the job re-checks for disputes under the lock |
+| 5 | Dispute opened while the job auto-completes | Trade completes with an open dispute | Claims close 48 hours after the meetup, before the 72-hour auto-complete; claims and completions both lock the trade row |
 | 6 | Two trades between the same pair complete together | Both counted, double points | Per-pair advisory lock when setting counted flags |
 | 7 | Two awards near the daily cap | Cap exceeded | Wallet row lock in `award_points` |
 | 8 | Per-source daily limit under concurrency | Limit exceeded | Same lock, counted inside it |
@@ -1917,7 +1917,7 @@ create type public.trade_status    as enum ('proposed', 'accepted', 'disputed', 
 create type public.dispute_type    as enum ('no_show');   -- escrow adds shipping claims (Part 7)
 create type public.dispute_status  as enum ('awaiting_response', 'under_review', 'upheld', 'rejected',
                                             'withdrawn', 'overturned');
-create type public.evidence_kind   as enum ('photo', 'gps', 'statement');
+create type public.evidence_kind   as enum ('photo', 'statement');   -- 'gps' with check-ins (P1)
 create type public.penalty_reason  as enum ('no_show', 'harassment', 'late_cancel', 'bad_faith');
 create type public.ledger_kind     as enum ('earn', 'spend', 'reversal', 'refund', 'correction');
 create type public.item_slot       as enum ('head', 'face', 'top', 'accessory', 'background', 'frame',
@@ -2240,6 +2240,7 @@ create table public.disputes (
   type            public.dispute_type not null,
   opened_by       uuid not null references public.profiles,
   against_id      uuid not null references public.profiles,
+  review_campus_id uuid references public.campuses,    -- null: open-market queue (super admins)
   status          public.dispute_status not null default 'awaiting_response',
   statement       text not null check (char_length(statement) <= 2000),
   opened_at       timestamptz not null default now(),
@@ -2258,10 +2259,10 @@ create table public.dispute_evidence (
   user_id     uuid not null references public.profiles,
   kind        public.evidence_kind not null,
   photo_path  text,
-  checkin_id  uuid,
-  body        text check (char_length(body) <= 2000),
-  created_at  timestamptz not null default now()
-);
+  body        text check (char_length(body) <= 2000),   -- the respondent's statement
+  created_at  timestamptz not null default now(),
+  check ((kind = 'photo') = (photo_path is not null) and (kind = 'statement') = (body is not null))
+);                                           -- checkin_id joins with GPS check-ins (P1)
 
 create table private.meetup_checkins (
   id          uuid primary key default gen_random_uuid(),
@@ -2827,14 +2828,14 @@ Favorites use the `favorites` table directly (insert or delete own rows). Seller
 
 | Function | Params | Returns | Errors |
 | --- | --- | --- | --- |
-| `open_dispute(trade_id, type, statement, photo_paths)` | uuid, `no_show`, text, text[] | dispute | `NOT_PARTY`, `WINDOW_CLOSED`, `INVALID_STATE`, `ALREADY_EXISTS` |
-| `respond_dispute(dispute_id, statement, photo_paths)` | uuid, text, text[] | dispute in `under_review` | `FORBIDDEN` (respondent only), `WINDOW_CLOSED` |
-| `add_evidence(dispute_id, kind, payload)` | uuid, `photo` / `statement`, jsonb | evidence | `FORBIDDEN`, `INVALID_STATE` |
-| `withdraw_dispute(dispute_id)` | uuid | dispute | `FORBIDDEN`, `INVALID_STATE` |
+| `open_dispute(trade_id, type, statement, photo_paths)` | uuid, `no_show`, text, text[] (up to 5) | dispute | `NOT_PARTY`, `WINDOW_CLOSED`, `INVALID_STATE`, `ALREADY_EXISTS`, `VALIDATION_FAILED` |
+| `respond_dispute(dispute_id, statement, photo_paths)` | uuid, text, text[] (up to 5) | dispute in `under_review` | `FORBIDDEN` (respondent only), `WINDOW_CLOSED`, `VALIDATION_FAILED` |
+| `add_evidence(dispute_id, kind, payload)` (later) | uuid, `photo` / `statement`, jsonb | evidence | `FORBIDDEN`, `INVALID_STATE` |
+| `withdraw_dispute(dispute_id)` | uuid | dispute (before the other side responds) | `FORBIDDEN`, `INVALID_STATE` |
 | `meetup_checkin(trade_id, lat, lng, accuracy_m, mocked)` | uuid, float, float, float, bool | `{ valid, distance_m }` | `NOT_PARTY`, `WINDOW_CLOSED` (outside 30 minutes of `meet_at`), `ALREADY_EXISTS` |
 | `submit_review(trade_id, rating, tags, comment)` | uuid, int, text[], text | `{ review, points_awarded }` | `NOT_PARTY`, `INVALID_STATE` (trade not completed), `WINDOW_CLOSED` (after 14 days), `ALREADY_EXISTS`, `VALIDATION_FAILED` (unknown tag) |
 
-Evidence photos are uploaded to the private `dispute-evidence` bucket under `{dispute_id}/{user_id}/` before the call; the function checks the paths belong to the caller.
+Evidence photos are uploaded to the private `dispute-evidence` bucket under `{trade_id}/{user_id}/` before the call (the dispute does not exist yet when it is opened); the function checks the paths belong to the caller. The parties and the admins of an open dispute on the trade read them.
 
 ### 6.8 Points, shop, avatar, pet
 
@@ -2863,7 +2864,7 @@ Every admin function writes `private.admin_log` and checks the caller's role and
 | --- | --- | --- |
 | `admin_queue()` | campus admin | Open cases for the campus, one per target with its report count and reasons (disputes from DB-14, appeals from P1), oldest first, with SLA age; super admins also get the open-market queue. The 200 oldest, no paging yet |
 | `admin_open_case_data(case_type, case_id, resource)` | campus admin | Returns a reported chat (`chat`, the 50 messages either side, hidden content included), and with disputes evidence or check-ins, for an open case; the call is the logged view |
-| `admin_resolve_dispute(dispute_id, outcome, bad_faith, note)` | campus admin | Upholds or rejects; applies penalties, trade transition and point reversal |
+| `admin_resolve_dispute(dispute_id, outcome, bad_faith, note)` | campus admin | Upholds or rejects a dispute under review; applies the penalty and settles the trade once its last open dispute closes (point reversals with appeals, P1) |
 | `admin_resolve_report(report_id, outcome, harassment, note)` | campus admin | Actions or dismisses every open report on the target; `harassment` adds the penalty |
 | `admin_set_hidden(target_type, target_ref, hidden, reason)` | campus admin | Hides (with a reason) or restores a listing or message |
 | `admin_enforce(user_id, kind, duration, reason_code, policy_ref, case_type, case_id, note)` | campus admin within limits | Creates an enforcement action; campus admins up to a 7-day suspension, super admins anything (proposals for approval from P1) |

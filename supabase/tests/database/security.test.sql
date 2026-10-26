@@ -25,7 +25,8 @@ select set_eq(
         'submit_review', 'register_push_token', 'unregister_push_token',
         'check_in', 'purchase_item', 'equip_item', 'get_wallet',
         'report', 'block_user', 'unblock_user', 'admin_queue', 'admin_open_case_data', 'admin_resolve_report',
-        'admin_set_hidden', 'admin_enforce', 'admin_set_config'],
+        'admin_set_hidden', 'admin_enforce', 'admin_set_config',
+        'open_dispute', 'respond_dispute', 'withdraw_dispute', 'admin_resolve_dispute'],
   'security definer functions in public match the allowlist'
 );
 
@@ -49,7 +50,7 @@ select set_eq(
   $$ select p.proname::text from pg_proc p
      where p.pronamespace = 'private'::regnamespace and p.prokind = 'f'
        and has_function_privilege('authenticated', p.oid, 'execute') $$,
-  array['my_live_campus_id', 'my_block_list', 'is_chat_party', 'can_join_topic'],
+  array['my_live_campus_id', 'my_block_list', 'is_chat_party', 'can_join_topic', 'can_see_evidence'],
   'authenticated can execute only the allowlisted private helpers'
 );
 

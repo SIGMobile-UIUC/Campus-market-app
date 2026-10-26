@@ -1,7 +1,7 @@
 -- TST-2: races between real sessions (spec 4.18): two acceptances of one item, a confirmation against
 -- the trades-advance job both ways, two completions of one pair, two opens of one chat, and accept
 -- against withdraw, two awards near the daily points cap, and the 2nd and 3rd reports of a listing.
--- Dispute against the job joins with DB-14.
+-- A dispute cannot race the job: claims close 48 hours after the meetup, before any auto-complete.
 --
 -- The other sessions are dblink connections, so their writes commit and their locks are real; they
 -- set up their own users and listings and remove them at the end. A non-superuser may use dblink only

@@ -35,3 +35,22 @@ jobs:
       - run: supabase db start
       - run: supabase db lint --level warning --fail-on error
       - run: supabase test db
+
+  # Applies new migrations to staging once main's database checks pass. The secrets live in the
+  # staging environment, which only main may use; link finds the IPv4 pooler the runner can reach.
+  staging:
+    if: github.event_name == 'push'
+    needs: db
+    runs-on: ubuntu-latest
+    environment: staging
+    concurrency: staging
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.120.0
+      - run: supabase link --project-ref ${{ vars.SUPABASE_PROJECT_REF }}
+      - run: supabase db push --yes

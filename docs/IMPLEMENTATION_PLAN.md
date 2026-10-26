@@ -50,7 +50,9 @@ docs/                   SPEC.md, this plan
 | Staging | Supabase free project; Resend for sign-in codes | EAS preview builds for the team and testers |
 | Production | Created for the beta, not needed for the demo | |
 
-Staging Supabase setup, since `config.toml` applies only locally: keep Confirm email on; paste `supabase/templates/code.html` into the confirmation and magic link templates; enable the Before User Created hook with `private.hook_before_user_created`; add a random Vault secret named `email_hmac_key`.
+Staging Supabase setup, since `config.toml` applies only locally: keep Confirm email on; set the email OTP length to 6; paste `supabase/templates/code.html` into the confirmation and magic link templates; enable the Before User Created hook with `private.hook_before_user_created`; use Resend as the custom SMTP; add a random Vault secret named `email_hmac_key`.
+
+After a merge, the `staging` job in CI applies new migrations once the database checks pass. Its secrets (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`) and variable (`SUPABASE_PROJECT_REF`) live in the GitHub `staging` environment, which only `main` may deploy from.
 
 Needed before week 2: a Supabase organization owned by the team, an Expo account, a sending domain for Resend (SPF, DKIM, DMARC), and secrets stored in GitHub Actions and EAS. Needed before iOS builds: an Apple Developer account ($99 per year). Android dev builds work without a store account.
 
@@ -137,13 +139,13 @@ Done when: after a completed trade both users see their new points and, once the
 
 ### M5 · Data, hardening and demo (week 9, Nov 30 to Dec 6)
 
-| ID | Task | Area |
-| --- | --- | --- |
-| DB-15 | `private.events`, `log_events`, `app_config.event_catalog`; `daily-maintenance` job (cleanup, purge, wallet audit) | Backend |
-| APP-15 | Analytics queue with consent; the P0 event catalog from spec 4.17.5 | App |
-| FN-2 | `delete-account` and `media-purge` | Backend |
-| INF-5 | Merge to `main` applies migrations to staging; preview builds for testers | Platform |
-| QA-1 | Real-device pass on iOS and Android, demo seed data, demo script rehearsed twice | All |
+| ID | Task | Area | Status |
+| --- | --- | --- | --- |
+| DB-15 | `private.events`, `log_events`, `app_config.event_catalog`; `daily-maintenance` job (cleanup, purge, wallet audit) | Backend | |
+| APP-15 | Analytics queue with consent; the P0 event catalog from spec 4.17.5 | App | |
+| FN-2 | `delete-account` and `media-purge` | Backend | |
+| INF-5 | Merge to `main` applies migrations to staging; preview builds for testers | Platform | Migrations done (the `staging` job in CI); preview builds later |
+| QA-1 | Real-device pass on iOS and Android, demo seed data, demo script rehearsed twice | All | |
 
 Feature freeze: Monday, Nov 30. Week 10 is for fixes and the demo only.
 

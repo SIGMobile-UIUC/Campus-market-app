@@ -1,13 +1,14 @@
 -- TST-2: races between real sessions (spec 4.18): two acceptances of one item, a confirmation against
 -- the trades-advance job both ways, two completions of one pair, two opens of one chat, and accept
--- against withdraw, and two awards near the daily points cap. Dispute against the job joins with DB-14.
+-- against withdraw, two awards near the daily points cap, and the 2nd and 3rd reports of a listing.
+-- Dispute against the job joins with DB-14.
 --
 -- The other sessions are dblink connections, so their writes commit and their locks are real; they
 -- set up their own users and listings and remove them at the end. A non-superuser may use dblink only
 -- with a password login, so they connect over the network address this session came in on (the local
 -- socket and loopback are trust logins); the local stack's postgres password is "postgres".
 begin;
-select plan(17);
+select plan(19);
 create extension if not exists dblink with schema extensions;
 -- Refusals in the other sessions are expected; dblink would print each as a notice.
 set local client_min_messages = warning;
@@ -75,6 +76,7 @@ language sql as $$
       select id from auth.users where email like 'race-%@illinois.edu';
     update public.items set status = 'available', reserved_trade_id = null, sold_at = null
     where listing_id in (select id from public.listings where owner_id in (select id from race_users));
+    delete from public.reports where reporter_id in (select id from race_users) or target_user_id in (select id from race_users);
     delete from public.trades where seller_id in (select id from race_users);
     delete from public.chats where owner_id in (select id from race_users);
     delete from public.listings where owner_id in (select id from race_users);
@@ -222,6 +224,15 @@ select ok(pg_temp.waiting('job'), 'a second award waits for the first');
 select pg_temp.run('setup', 'commit');
 select is(pg_temp.result('job') || ' ' || pg_temp.value('setup', format($q$select balance from public.wallets where user_id = %L$q$, pg_temp.id('earner'))),
   '0 200', 'and then earns nothing past the cap');
+
+-- 8. The 2nd and 3rd reports of a listing at once (4.18 #19): the listing lock makes the 3rd count the 2nd.
+select pg_temp.value('buyer1', format($q$select public.report('listing', %L, 'scam') ->> 'status'$q$, pg_temp.id('lamp')));
+select pg_temp.hold('buyer2', format($q$public.report('listing', %L, 'scam')$q$, pg_temp.id('lamp')));
+select pg_temp.start('buyer3', format($q$select public.report('listing', %L, 'scam') ->> 'status'$q$, pg_temp.id('lamp')));
+select ok(pg_temp.waiting('buyer3'), 'a third report waits for the second');
+select pg_temp.run('buyer2', 'commit');
+select is(pg_temp.result('buyer3') || ' ' || pg_temp.value('setup', format($q$select hidden::text from public.listings where id = %L$q$, pg_temp.id('lamp'))),
+  'open true', 'and then counts it and hides the listing');
 
 -- Remove everything the connections made, including what a failed earlier run left behind.
 select pg_temp.cleanup();

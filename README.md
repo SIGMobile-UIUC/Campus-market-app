@@ -6,27 +6,35 @@ A mobile marketplace where students buy and sell with verified students from the
 
 ```
 apps/mobile/   Expo app (TypeScript, Expo Router, NativeWind)
-supabase/      Supabase config, migrations, Edge Functions, tests
+supabase/      Supabase config, migrations, seed data, tests
 docs/          Specification and implementation plan
 ```
 
 ## Prerequisites
 
 - Node.js 22 LTS
-- Docker Desktop (for the local Supabase stack, from M1)
-- Expo Go (SDK 57) on a phone, or an Android emulator. A development build replaces Expo Go once we add a native module Expo Go does not include.
+- Docker Desktop (for the local Supabase stack)
+- An Android emulator or phone with the development build below. Expo Go does not work: push notifications need native code it does not include.
 
 ## Run the app
 
 Start the local backend first (see [Local backend](#local-backend)), then copy `apps/mobile/.env.example` to `apps/mobile/.env.local` and fill in the key from `npx supabase status`.
 
+Install the development build once, and again only when native dependencies or `app.json` change. It builds in EAS, which needs access to the team's Expo account; install the APK from the link it prints. With Android Studio, `npx expo run:android` builds it locally instead.
+
 ```bash
 cd apps/mobile
 npm ci
+npx eas-cli build --profile development --platform android
+```
+
+Then start Metro and open the app in the development build:
+
+```bash
 npx expo start
 ```
 
-Press `a` for Android, or scan the QR code with your phone. Sign in with any email; the code arrives in Mailpit.
+Press `a` for the emulator, or scan the QR code with your phone. Sign in with any email; the code arrives in Mailpit.
 
 ## Checks
 
@@ -44,7 +52,7 @@ npm test
 
 ## Local backend
 
-From M1 the app talks to a local Supabase stack. Start Docker Desktop first; the first start downloads a few GB of images.
+The app talks to a local Supabase stack. Start Docker Desktop first; the first start downloads a few GB of images.
 
 ```bash
 npx supabase start

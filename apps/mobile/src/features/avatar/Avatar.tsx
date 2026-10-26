@@ -8,7 +8,7 @@ const INK = "#2B2B2B";
 const BODY = "#FFF6EA";
 
 // Bundled SVG layers by asset_key (spec 4.14). A mascot rather than a person, so no skin tone or gender
-// is implied. ponytail: placeholder art drawn in code; a designer's layers replace these keys one to one.
+// is implied. Placeholder art drawn in code; a designer's layers replace these keys one to one.
 const BACKGROUNDS: Record<string, string> = {
   bg_sky: "#CDE8FF",
   bg_mint: "#C9F2DD",

@@ -12,7 +12,7 @@ const WANTED = MODES.find((m) => m.id === "wanted")!;
 
 // A request card (spec 3.3, Wanted board): what is wanted, the budget, who asks and "I have this", which
 // opens the offer sheet.
-// ponytail: the offer count arrives with offers (M3).
+// The offer count comes with the public counts of APP-21.
 export function WantedCard({ row, mine = false }: { row: FeedRow; mine?: boolean }) {
   return (
     <Pressable

@@ -151,7 +151,7 @@ export function TradeActions({
               disabled={busy || !open}
               onPress={() =>
                 void run("confirm_trade").then((result) => {
-                  // The completion moment leads to the review (spec 3.8). ponytail: the points toast joins with DB-12.
+                  // The completion moment leads to the review (spec 3.8). The points toast comes with the wallet (APP-12).
                   if (result?.completed)
                     router.push({ pathname: "/review/[tradeId]", params: { tradeId: trade.id } });
                 })

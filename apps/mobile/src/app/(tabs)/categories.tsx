@@ -8,7 +8,7 @@ import { categoryIcon, useCategories } from "@/features/catalog/categories";
 import { useTheme } from "@/ui/theme";
 
 // Categories tab (spec 3.3, DSC-13): categories on the left, the chosen one's subcategories on the right.
-// ponytail: per-subcategory counts and popular searches need aggregate queries; add with DB-15.
+// Later: per-subcategory counts and popular searches need aggregate queries (DB-15).
 export default function Categories() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();

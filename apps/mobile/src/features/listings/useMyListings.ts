@@ -6,7 +6,7 @@ import { OWN_LISTING_SELECT, type OwnListingRow } from "./types";
 
 export type MyListing = OwnListingRow & { saves: number };
 
-// ponytail: the newest 100; paging when a seller has more.
+// The newest 100; paging when a seller has more.
 async function fetchMine(userId: string): Promise<MyListing[]> {
   const { data, error } = await supabase
     .from("listings")

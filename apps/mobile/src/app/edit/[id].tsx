@@ -65,7 +65,7 @@ function draftOf(listing: Listing): Draft {
 
 // Edit a listing (APP-20, update_listing): title, description, budget, and the name, price and condition
 // of items that are still available. Reserved and sold items stay as they are, so a trade's terms never
-// shift (spec 4.7). ponytail: photos, category and trade options are edited by posting again for now.
+// shift (spec 4.7). Photos, category and trade options are edited by posting again for now.
 export default function EditListing() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [listing, setListing] = useState<Listing | null | undefined>(undefined);

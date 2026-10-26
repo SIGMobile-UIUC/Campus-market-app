@@ -25,10 +25,9 @@ apps/mobile/            Expo app (TypeScript, Expo Router)
   src/lib/              supabase client, media, analytics queue, errors
 supabase/
   migrations/           SQL, one file per change, source of truth for the schema
-  functions/            Edge Functions (push-dispatch, push-receipts, media-purge, delete-account)
-  tests/                pgTAP
-  seed.sql              campuses, domains, zones, spots, categories, shop items, rule values
-tests/race/             concurrency scripts against the local stack
+  functions/            Edge Functions (delete-account, media-purge); push runs in the database
+  tests/                pgTAP, including the concurrency tests
+  seed.sql              demo campuses, domains, zones and spots; categories, shop items and rule values are migrations
 docs/                   SPEC.md, this plan
 ```
 
@@ -37,7 +36,7 @@ docs/                   SPEC.md, this plan
 | Node LTS, npm | Package manager; no monorepo tool until it is needed |
 | Expo SDK (current), Expo Router, TypeScript strict | App |
 | NativeWind 4 (Tailwind 3 syntax) | Styling; neutrals and campus colors as CSS variables at runtime |
-| TanStack Query, React Context | Server data, session and theme |
+| React Context and hooks | Server data, session and theme |
 | Supabase CLI, Docker Desktop | Local stack (`supabase start`), migrations, pgTAP (`supabase test db`) |
 | EAS CLI | Dev client and preview builds (free plan) |
 | ESLint, Prettier, `tsc --noEmit` | Lint and type check |
@@ -65,8 +64,8 @@ Weeks run Monday to Sunday. Each milestone ends with a demo of its slice on stag
 | --- | --- | --- | --- |
 | INF-1 | Scaffold `apps/mobile` (Expo SDK 57, TypeScript, Expo Router in `src/app`) and `supabase/` (CLI init); README setup steps | Platform | Done |
 | INF-2 | ESLint, Prettier, type check; GitHub Actions PR workflow; branch protection on `main` | Platform | Done; branch protection needs a repo admin |
-| INF-3 | Staging Supabase project; local and staging env wiring | Platform | Waiting for the Supabase organization |
-| INF-4 | EAS project; Android dev client build; iOS once the Apple account exists | Platform | Waiting for the Expo account |
+| INF-3 | Staging Supabase project; local and staging env wiring | Platform | Done: project, migrations, and auth sending 6-digit codes through Resend |
+| INF-4 | EAS project; Android dev client build; iOS once the Apple account exists | Platform | Android development build done; iOS waits for the Apple account |
 | APP-1 | ThemeProvider (campus colors and dark mode as CSS variables), base components: Button, Chip, ModeTile, CategoryTile, TabBar with the raised Sell button | App | Done; ListingCard arrives with listings in M2 |
 | APP-2 | Navigation shell: `(tabs)` Home, Categories, Chats, Me, Sell sheet | App | Done; `(auth)` arrives with onboarding in M1 |
 
@@ -78,7 +77,7 @@ Done when: a fresh clone runs the app in under 15 minutes by following the READM
 | --- | --- | --- | --- |
 | DB-1 | Types, `campuses`, `campus_domains`, `campus_zones`, `meetup_spots`, `zip_codes`, `app_config` | Backend | Done |
 | DB-2 | `profiles`, `private.accounts`, `user_roles`, `user_settings`, `consents`; profile creation on email confirmation; `get_my_account`, `complete_onboarding` | Backend | Done; starter avatar joins with DB-12 |
-| DB-3 | Before User Created hook: plus addresses, disposable domains, tombstones; Resend as the auth SMTP on staging | Backend | Hook done; Resend waits for the sending domain |
+| DB-3 | Before User Created hook: plus addresses, disposable domains, tombstones; Resend as the auth SMTP on staging | Backend | Done; mail reaches only the Resend account's own address until the sending domain is verified |
 | DB-4 | RLS on every table, function security lint, pgTAP harness with the RLS matrix users (same campus, other campus, waitlist, general, suspended, banned) | Backend | Done; CI runs lint and pgTAP |
 | DB-5 | Seed: two live campuses (Illinois, Purdue) and one waitlist campus (Michigan), categories from spec 1.7.5, rule values | Backend | Done; ZIP codes (all US), categories and rule values in migrations; zone and spot coordinates need a map check |
 | APP-3 | Onboarding: email, 6-digit code, campus reveal, ZIP for general users, nickname and avatar, rules and consent; session in SecureStore | App | Done, including the starter avatar |
@@ -92,13 +91,13 @@ Done when: a UIUC email lands in the Illinois market with Illinois colors, a Gma
 | --- | --- | --- | --- |
 | DB-6 | `listings`, `items`, `listing_photos`, `favorites`; `create_listing` for all three kinds (item, bundle of 2 to 30, wanted with budget), `update_listing`, `close_listing`, `delete_listing`, `mark_sold_elsewhere`; item-count check per kind; prohibited-keyword and area trigger; daily posting limits | Backend | Done; bumps (P1) later |
 | DB-7 | `feed` and `search_listings` with modes, categories, filters, keyset paging; full-text plus trigram search; indexes from spec 5.4 | Backend | Done |
-| APP-5 | `src/lib/media`: camera and library, resize, WebP with JPEG fallback, size targets, blurhash, upload, signed URL batches | App | |
-| APP-6 | Sell flow: type picker, one item and Give it away (photos, details with category and subcategory, price, trade options, preview), Move-out sale (add, reorder and price up to 30 items), Wanted request (title, budget, category) | App | |
-| APP-7 | Home (modes, Picked for you, first nine categories plus More, Hot this week), Categories tab with all 21 categories and their subcategories in two panes (spec 1.7.5), Category results, Search | App | |
-| APP-8 | Listing page, favorites, similar items, locked preview for campus-only links | App | |
-| APP-20 | My listings on the Me tab: Selling, Reserved and Sold tabs; edit, close, reopen and mark sold elsewhere | App | |
+| APP-5 | `src/lib/media`: camera and library, resize, WebP with JPEG fallback, size targets, blurhash, upload, signed URL batches | App | Done |
+| APP-6 | Sell flow: type picker, one item and Give it away (photos, details with category and subcategory, price, trade options, preview), Move-out sale (add, reorder and price up to 30 items), Wanted request (title, budget, category) | App | Done |
+| APP-7 | Home (modes, Picked for you, first nine categories plus More, Hot this week), Categories tab with all 21 categories and their subcategories in two panes (spec 1.7.5), Category results, Search | App | Done; Picked for you needs viewing history (P1) and Hot this week needs events (DB-15) |
+| APP-8 | Listing page, favorites, similar items, locked preview for campus-only links | App | Done; similar items and the locked preview for campus-only links are P1 |
+| APP-20 | My listings on the Me tab: Selling, Reserved and Sold tabs; edit, close, reopen and mark sold elsewhere | App | Done; photos, category and trade options are edited by posting again |
 | APP-16 | Move-out sale page (item rows, status, multi-select) and the Home module | App | Item rows with status and multi-select on the listing page ("Ask about N items" opens the proposal sheet) |
-| APP-17 | Wanted board, request page and the Home module | App | Board, request cards and Home module done; I have this opens the offer sheet with M3 (APP-18), offer counts with offers |
+| APP-17 | Wanted board, request page and the Home module | App | Done; offer counts on request cards come with APP-21 |
 | TST-1 | pgTAP: listing visibility for every RLS matrix user; storage policies on `listing-photos` | Backend | Done |
 
 Done when: a student posts with photos in under a minute, students at another campus and general users cannot see it unless it is in the open market, and the RLS tests prove it.
@@ -112,9 +111,9 @@ Done when: a student posts with photos in under a minute, students at another ca
 | DB-10 | `trades-advance` job: proposal expiry, auto-complete after 72 hours, expiry after 7 days | Backend | Done; dispute deadlines join with DB-14 |
 | FN-1 | `push-dispatch` and `push-receipts`; push token registration; webhooks after commit | Backend | Done in the database through pg_net instead of Edge Functions; iOS needs the club's Apple account |
 | APP-9 | Chat list and room: realtime, gap fill, read state, quick replies, photo messages, safety banner, leave chat | App | Done; trade steps show as one line until the cards of APP-10 |
-| APP-10 | Proposal sheet (items picked from a bundle carry over from the move-out sale page), trade cards with current actions, trade details, My trades | App | Done; points toast and review sheet come with DB-12 and APP-11 |
-| APP-18 | Offer sheet from "I have this": photos, item, price against the budget, condition; sending opens a chat with a proposal | App | Done; the offer count on request cards comes later |
-| APP-11 | Review sheet after completion | App | Done; the points toast joins with DB-12 |
+| APP-10 | Proposal sheet (items picked from a bundle carry over from the move-out sale page), trade cards with current actions, trade details, My trades | App | Done; the points toast comes with APP-12 |
+| APP-18 | Offer sheet from "I have this": photos, item, price against the budget, condition; sending opens a chat with a proposal | App | Done; the offer count on request cards comes with APP-21 |
+| APP-11 | Review sheet after completion | App | Done; the points toast comes with APP-12 |
 | TST-2 | Race tests: double reservation, confirm against the job, dispute against the job | Backend | Done for reservations, confirm against the job, the pair lock, accept against withdraw and opening a chat; dispute against the job joins with DB-14 |
 
 Done when: two phones complete a trade end to end on staging, with push notifications, and the race tests pass.
@@ -127,7 +126,8 @@ Done when: two phones complete a trade end to end on staging, with push notifica
 | DB-12 | `wallets`, `points_ledger`, `award_points`, `purchases`, `inventory`, `avatar_loadout`, `checkins`; shop seed (`shop_items`, `inventory`, `avatar_loadout` and the starter items shipped with APP-3) | Backend | Done; reversals with DB-14, the wallet audit with DB-15 |
 | DB-13 | `reports`, `blocks`, auto-hide trigger, `enforcement_actions`, `private.admin_log`; admin queue, resolve, enforce, set config | Backend | |
 | DB-14 | No-show disputes: open, respond, evidence, admin decision; evidence bucket | Backend | |
-| APP-12 | Me tab: grade card with progress, wallet and history, daily check-in, shop and avatar editor (SVG layers) | App | |
+| APP-12 | Me tab: grade card with progress, wallet and history, daily check-in, shop and avatar editor (SVG layers); the points toast after a trade or review | App | |
+| APP-21 | Public profile (ACC-4): nickname, school and grade badges, review tag counts, active listings, member since, reply time; the seller's trade count and reply time on the listing page; offer counts on request cards | Backend | |
 | APP-13 | Report and block menus; account status page; admin queue and case view for admins | App | |
 | APP-14 | Dispute flow with in-app camera evidence | App | |
 | APP-19 | Settings: notifications, privacy and consent changes, blocked users, community rules, contact address, data credits (GeoNames, CC BY 4.0), account (entry to account deletion) | App | |

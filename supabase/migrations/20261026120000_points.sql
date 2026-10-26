@@ -72,8 +72,9 @@ on conflict (sku) do nothing;
 -- Earning ------------------------------------------------------------------------------------------
 
 -- Awards p_source points (or p_points) to the user once per p_ref, within the source's daily limit and
--- the daily cap, both counted from the user's local midnight (4.13.2). The wallet row lock serializes a
--- user's awards, so the limits hold under concurrency. A negative balance is paid down first.
+-- the daily cap, both counted from the user's local midnight (4.13.2). Sources outside the cap neither
+-- stop at it nor use it up. The wallet row lock serializes a user's awards, so the limits hold under
+-- concurrency. A negative balance is paid down first.
 create function private.award_points(p_user uuid, p_source text, p_ref text, p_points int default null) returns int
 language plpgsql security definer set search_path = '' as $$
 declare
@@ -88,14 +89,15 @@ begin
   if coalesce(v_grant, 0) <= 0 then
     return 0;
   end if;
-  insert into public.wallets (user_id) values (p_user) on conflict do nothing;
   select w.balance, date_trunc('day', now() at time zone p.timezone) at time zone p.timezone
   into v_balance, v_day
   from public.wallets w join public.profiles p on p.id = w.user_id
   where w.user_id = p_user
   for update of w;
 
-  select coalesce(sum(delta) filter (where kind = 'earn'), 0), count(*) filter (where kind = 'earn' and source = p_source)
+  select coalesce(sum(delta) filter (where kind = 'earn'
+                                       and not coalesce((v_rules -> 'earn' -> source ->> 'outside_cap')::boolean, false)), 0),
+         count(*) filter (where kind = 'earn' and source = p_source)
   into v_today, v_source_today
   from public.points_ledger where user_id = p_user and created_at >= v_day;
 
@@ -271,16 +273,19 @@ $$;
 
 -- Reading ------------------------------------------------------------------------------------------
 
--- A definer so the cap comes from the rules, which stay server-side.
+-- A definer so the cap comes from the rules, which stay server-side. earned_today is what counts
+-- toward the cap.
 create function public.get_wallet() returns jsonb
 language sql stable security definer set search_path = '' as $$
-  with me as (select p.id, p.timezone from public.profiles p where p.id = private.require_user(true))
+  with me as (select p.id, p.timezone from public.profiles p where p.id = private.require_user(true)),
+       rules as (select value from public.app_config where key = 'points_rules')
   select jsonb_build_object(
     'balance', coalesce((select w.balance from public.wallets w, me where w.user_id = me.id), 0),
-    'earned_today', coalesce((select sum(l.delta) from public.points_ledger l, me
+    'earned_today', coalesce((select sum(l.delta) from public.points_ledger l, me, rules
                               where l.user_id = me.id and l.kind = 'earn'
+                                and not coalesce((rules.value -> 'earn' -> l.source ->> 'outside_cap')::boolean, false)
                                 and l.created_at >= date_trunc('day', now() at time zone me.timezone) at time zone me.timezone), 0),
-    'daily_cap', (select (value ->> 'daily_cap')::int from public.app_config where key = 'points_rules'));
+    'daily_cap', (select (value ->> 'daily_cap')::int from rules));
 $$;
 
 -- Newest first; the cursor is the last row's id.

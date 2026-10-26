@@ -51,11 +51,12 @@ select tests.complete('alpha1', 'general1', '{"visibility": "open", "title": "Fr
   "items": [{"name": "Lamp", "price_cents": 0, "condition": "good"}]}');
 select is(tests.balance('alpha1') || ' ' || tests.balance('general1'), '180 0', 'a free trade pays the giver 30 and the receiver nothing');
 
--- Limits (4.13.2).
-select is(tests.award('alpha1', 'review', 'r1') + tests.award('alpha1', 'review', 'r2'), 20, 'earning continues up to the daily cap');
-select is(tests.award('alpha1', 'review', 'r3'), 0, 'the daily cap is 200');
+-- Limits (4.13.2). alpha1 has 80 toward the cap: the first-trade bonus does not use it up.
+select is(tests.award('alpha1', 'checkin', 'fill', 110) + tests.award('alpha1', 'review', 'r1'), 120,
+  'earning continues up to the daily cap');
+select is(tests.award('alpha1', 'review', 'r2'), 0, 'the daily cap is 200');
 select is(tests.award('gamma1', 'checkin', 'c1', 200) + tests.award('gamma1', 'first_trade', 'first'), 300,
-  'the first-trade bonus is outside the cap');
+  'the first-trade bonus is paid past the cap');
 select is(tests.award('beta1', 'trade_giver', 'g1') + tests.award('beta1', 'trade_giver', 'g2') + tests.award('beta1', 'trade_giver', 'g3')
           + tests.award('beta1', 'trade_giver', 'g4'), 90, 'a source with a daily limit pays at most that many times');
 select is(tests.award('suspended', 'review', 'same') + tests.award('suspended', 'review', 'same'), 10, 'the same reference pays once');
@@ -80,10 +81,10 @@ select throws_ok($$ select public.purchase_item(tests.item('bg_gold'), gen_rando
 select throws_ok($$ select public.purchase_item(tests.item('bg_sky'), gen_random_uuid()) $$, 'P0001', 'ITEM_NOT_FOR_SALE', 'starter items are not sold');
 select tests.login_as(tests.user_id('alpha1'));
 select tests.remember('buy', gen_random_uuid());
-select is((public.purchase_item(tests.item('bg_sand'), tests.id('buy')) ->> 'balance')::int, 50, 'a purchase spends the price');
-select is((public.purchase_item(tests.item('bg_sand'), tests.id('buy')) ->> 'balance')::int, 50, 'a retried purchase is not charged again');
+select is((public.purchase_item(tests.item('bg_sand'), tests.id('buy')) ->> 'balance')::int, 150, 'a purchase spends the price');
+select is((public.purchase_item(tests.item('bg_sand'), tests.id('buy')) ->> 'balance')::int, 150, 'a retried purchase is not charged again');
 select throws_ok($$ select public.purchase_item(tests.item('bg_sand'), gen_random_uuid()) $$, 'P0001', 'ALREADY_OWNED', 'an owned item is not sold twice');
-select throws_ok($$ select public.purchase_item(tests.item('top_tee_yellow'), gen_random_uuid()) $$, 'P0001', 'INSUFFICIENT_POINTS',
+select throws_ok($$ select public.purchase_item(tests.item('bg_night'), gen_random_uuid()) $$, 'P0001', 'INSUFFICIENT_POINTS',
   'spending needs the full price');
 reset role;
 update public.wallets set balance = -10 where user_id = tests.user_id('general1');
@@ -99,7 +100,7 @@ select is(public.equip_item('background', null) ? 'background', false, 'a slot c
 -- Reading (PTS-1).
 select is((select count(distinct user_id)::int from public.wallets) + (select count(distinct user_id)::int from public.points_ledger), 2,
   'users read only their own wallet and ledger');
-select is(public.get_wallet(), '{"balance": 50, "daily_cap": 200, "earned_today": 200}', 'the wallet shows balance and today''s earnings');
+select is(public.get_wallet(), '{"balance": 150, "daily_cap": 200, "earned_today": 200}', 'the wallet shows balance and today''s earnings');
 select is((select array_agg(r ->> 'label') from jsonb_array_elements(public.points_history(null, 2) -> 'rows') r),
   array['Shop purchase', 'Wrote a review'], 'history lists the newest changes with labels');
 

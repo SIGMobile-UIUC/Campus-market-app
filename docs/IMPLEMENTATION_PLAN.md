@@ -124,7 +124,7 @@ Done when: two phones complete a trade end to end on staging, with push notifica
 | ID | Task | Area | Status |
 | --- | --- | --- | --- |
 | DB-11 | `reviews`, `penalties`, `rank_stats`; `rank-recompute` job reading `app_config.rank_rules` | Backend | Done; point awards join with DB-12, dispute penalties with DB-14 |
-| DB-12 | `wallets`, `points_ledger`, `award_points`, `purchases`, `inventory`, `avatar_loadout`, `checkins`; shop seed (`shop_items`, `inventory`, `avatar_loadout` and the starter items shipped with APP-3) | Backend | |
+| DB-12 | `wallets`, `points_ledger`, `award_points`, `purchases`, `inventory`, `avatar_loadout`, `checkins`; shop seed (`shop_items`, `inventory`, `avatar_loadout` and the starter items shipped with APP-3) | Backend | Done; reversals with DB-14, the wallet audit with DB-15 |
 | DB-13 | `reports`, `blocks`, auto-hide trigger, `enforcement_actions`, `private.admin_log`; admin queue, resolve, enforce, set config | Backend | |
 | DB-14 | No-show disputes: open, respond, evidence, admin decision; evidence bucket | Backend | |
 | APP-12 | Me tab: grade card with progress, wallet and history, daily check-in, shop and avatar editor (SVG layers) | App | |

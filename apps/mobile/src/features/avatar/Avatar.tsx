@@ -16,6 +16,10 @@ const BACKGROUNDS: Record<string, string> = {
   bg_lilac: "#E4D9FF",
   bg_sun: "#FFF1A8",
   bg_rose: "#FFD6E0",
+  bg_sand: "#F1E2C4",
+  bg_slate: "#C9D1DB",
+  bg_night: "#2E3A66",
+  bg_gold: "#F5C84C",
 };
 
 const TOPS: Record<string, { style: "hoodie" | "tee" | "sweater"; color: string }> = {
@@ -25,6 +29,10 @@ const TOPS: Record<string, { style: "hoodie" | "tee" | "sweater"; color: string 
   top_tee_purple: { style: "tee", color: "#7B5CC4" },
   top_sweater_red: { style: "sweater", color: "#C8443B" },
   top_tee_teal: { style: "tee", color: "#2C9C9A" },
+  top_hoodie_black: { style: "hoodie", color: "#333438" },
+  top_tee_yellow: { style: "tee", color: "#F2C230" },
+  top_sweater_navy: { style: "sweater", color: "#2A3F6B" },
+  top_hoodie_gold: { style: "hoodie", color: "#D9A520" },
 };
 
 const FACES: Record<string, ReactNode> = {

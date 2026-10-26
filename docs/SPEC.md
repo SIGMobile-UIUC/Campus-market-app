@@ -1388,7 +1388,7 @@ Completion runs in one transaction, whether triggered by a user or by the job:
 #### 4.13.2 Earning
 
 ```sql
-create function private.award_points(p_user uuid, p_source text, p_ref text)
+create function private.award_points(p_user uuid, p_source text, p_ref text, p_points integer default null)
 returns integer language plpgsql security definer set search_path = '' as $$
 declare
   v_rules  jsonb := private.config('points_rules');      -- app_config value
@@ -1420,7 +1420,7 @@ begin
     return 0;
   end if;
 
-  v_grant := (v_rule ->> 'points')::int;
+  v_grant := coalesce(p_points, (v_rule ->> 'points')::int);   -- check_in passes 25 on a 7th day
   if not coalesce((v_rule ->> 'outside_cap')::boolean, false) then
     v_grant := least(v_grant, greatest((v_rules ->> 'daily_cap')::int - v_today, 0));
   end if;
@@ -2824,8 +2824,8 @@ Evidence photos are uploaded to the private `dispute-evidence` bucket under `{di
 
 | Function | Params | Returns | Errors |
 | --- | --- | --- | --- |
-| `get_wallet()` (invoker) | none | `{ balance, earned_today, daily_cap }` | |
-| `points_history(cursor, limit)` (invoker) | jsonb, int | ledger rows with reason labels | |
+| `get_wallet()` | none | `{ balance, earned_today, daily_cap }` | `AUTH_REQUIRED` |
+| `points_history(cursor, limit)` (invoker) | bigint (last row id), int | `{ rows, next_cursor }`, rows with reason labels | |
 | `check_in()` | none | `{ checked_in, streak, points_awarded }` (`checked_in: false` if already done today) | `ACCOUNT_SUSPENDED` |
 | `purchase_item(item_id, purchase_id)` | uuid, uuid | `{ purchase, balance }` | `INSUFFICIENT_POINTS`, `ALREADY_OWNED`, `ITEM_NOT_FOR_SALE`, `TIER_REQUIRED` |
 | `equip_item(slot, item_id)` | `item_slot`, uuid or null (unequip) | loadout | `FORBIDDEN` (not owned), `VALIDATION_FAILED` (wrong slot) |

@@ -14,6 +14,7 @@ import { Field } from "@/ui/Field";
 import { Header } from "@/ui/Header";
 import { Screen } from "@/ui/Screen";
 import { useTheme } from "@/ui/theme";
+import { toast } from "@/ui/Toast";
 
 type Tag = { id: string; label: string };
 type Tags = { positive: Tag[]; negative: Tag[] };
@@ -28,7 +29,7 @@ async function load(tradeId: string): Promise<{ trade: Trade; tags: Tags } | nul
 }
 
 // Review sheet (REP-1, APP-11): 1 to 5 stars, tags from the configured list and an optional comment,
-// once per side within 14 days of completion. The points toast comes with the wallet (APP-12).
+// once per side within 14 days of completion; a toast shows the points it earned.
 export default function Review() {
   const { tradeId } = useLocalSearchParams<{ tradeId: string }>();
   const { session } = useAccount();
@@ -70,7 +71,7 @@ export default function Review() {
 
   const submit = async () => {
     setSending(true);
-    const { error } = await supabase.rpc("submit_review", {
+    const { data, error } = await supabase.rpc("submit_review", {
       p_trade_id: tradeId,
       p_rating: rating,
       p_tags: tags,
@@ -87,6 +88,8 @@ export default function Review() {
       );
       return;
     }
+    const points = (data as { points_awarded: number }).points_awarded;
+    if (points) toast(`Thanks for your review · +${points} points`);
     router.back();
   };
 

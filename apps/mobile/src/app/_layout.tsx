@@ -10,6 +10,7 @@ import { ChatProvider } from "@/features/chat/ChatProvider";
 import { toCampus } from "@/features/campus/campuses";
 import { Button } from "@/ui/Button";
 import { ThemeProvider } from "@/ui/theme";
+import { Toaster } from "@/ui/Toast";
 
 export default function RootLayout() {
   return (
@@ -67,6 +68,9 @@ function Shell() {
               <Stack.Screen name="trade/[id]" />
               <Stack.Screen name="trades" />
               <Stack.Screen name="review/[tradeId]" />
+              <Stack.Screen name="wallet" />
+              <Stack.Screen name="grade" />
+              <Stack.Screen name="shop" />
               <Stack.Screen
                 name="sell"
                 options={{
@@ -79,6 +83,7 @@ function Shell() {
           </Stack>
         </ChatProvider>
       )}
+      <Toaster />
     </ThemeProvider>
   );
 }

@@ -6,6 +6,7 @@ import { formatPrice } from "@/lib/format";
 import { Button } from "@/ui/Button";
 import { Menu } from "@/ui/Menu";
 import { TextLink } from "@/ui/TextLink";
+import { toast } from "@/ui/Toast";
 
 import {
   CANCEL_REASONS,
@@ -95,7 +96,10 @@ export function TradeActions({
   const [cancelling, setCancelling] = useState(false);
   const run = async (fn: string, args: Record<string, unknown> = {}) => {
     setBusy(true);
-    const result = await tradeAction<{ completed?: boolean }>(fn, { p_trade_id: trade.id, ...args });
+    const result = await tradeAction<{ completed?: boolean; points_awarded?: number }>(fn, {
+      p_trade_id: trade.id,
+      ...args,
+    });
     setBusy(false);
     onChanged();
     return result;
@@ -151,9 +155,10 @@ export function TradeActions({
               disabled={busy || !open}
               onPress={() =>
                 void run("confirm_trade").then((result) => {
-                  // The completion moment leads to the review (spec 3.8). The points toast comes with the wallet (APP-12).
-                  if (result?.completed)
-                    router.push({ pathname: "/review/[tradeId]", params: { tradeId: trade.id } });
+                  // The completion moment: the points it earned, then the review (spec 3.8).
+                  if (!result?.completed) return;
+                  if (result.points_awarded) toast(`Trade completed · +${result.points_awarded} points`);
+                  router.push({ pathname: "/review/[tradeId]", params: { tradeId: trade.id } });
                 })
               }
             />

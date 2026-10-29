@@ -1,5 +1,13 @@
 import { router, useFocusEffect } from "expo-router";
-import { ChevronRight, Ellipsis, Handshake, Heart } from "lucide-react-native";
+import {
+  CalendarCheck,
+  ChevronRight,
+  Ellipsis,
+  Handshake,
+  Heart,
+  ShoppingBag,
+  WalletCards,
+} from "lucide-react-native";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -8,14 +16,17 @@ import { useAccount } from "@/features/account/account";
 import { Avatar } from "@/features/avatar/Avatar";
 import { rowToCard } from "@/features/listings/types";
 import { useMyListings, type MyListing } from "@/features/listings/useMyListings";
+import { checkinState, fetchMeStats, nextTier, type MeStats } from "@/features/points/points";
 import { errorMessage } from "@/lib/errors";
 import { disablePush } from "@/lib/push";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/ui/Button";
-import { GradeBadge } from "@/ui/GradeBadge";
+import { GRADE_LETTERS, GradeBadge } from "@/ui/GradeBadge";
 import { ListingCard } from "@/ui/ListingCard";
 import { Menu, type MenuOption } from "@/ui/Menu";
+import { ProgressBar } from "@/ui/ProgressBar";
 import { useTheme } from "@/ui/theme";
+import { toast } from "@/ui/Toast";
 
 type Tab = "selling" | "reserved" | "sold";
 
@@ -25,8 +36,8 @@ const TABS: [Tab, string, (l: MyListing) => boolean][] = [
   ["sold", "Sold", (l) => l.status === "sold_out"],
 ];
 
-// Me (spec 3.3) with My listings (APP-20). Grade card, wallet, check-in and shop arrive with
-// APP-12; sign-out moves into Settings (APP-19). The avatar frame follows the grade once grades show.
+// Me (spec 3.3): the grade card, wallet, shop and daily check-in (APP-12), then My listings (APP-20).
+// Sign-out moves into Settings (APP-19).
 export default function Me() {
   const { campus, colors } = useTheme();
   const { account, session } = useAccount();
@@ -34,9 +45,15 @@ export default function Me() {
   const { listings, failed, reload } = useMyListings(session?.user.id);
   const [tab, setTab] = useState<Tab>("selling");
   const [menuFor, setMenuFor] = useState<MyListing | null>(null);
+  const [stats, setStats] = useState<MeStats | null>(null);
 
-  // Back from a listing or the editor, the list shows what changed there.
-  useFocusEffect(useCallback(() => reload(), [reload]));
+  // Back from a listing, the editor, the shop or a trade, the tab shows what changed there.
+  useFocusEffect(
+    useCallback(() => {
+      reload();
+      if (session) void fetchMeStats(session.user.id).then(setStats);
+    }, [reload, session]),
+  );
 
   const shown = (listings ?? []).filter(TABS.find(([id]) => id === tab)![2]);
 
@@ -59,6 +76,14 @@ export default function Me() {
           <Text className="text-[13px] text-on-primary opacity-80">{account?.email}</Text>
         </View>
       </View>
+
+      {account && stats ? (
+        <Progress
+          tier={account.tier}
+          stats={stats}
+          onCheckedIn={() => session && void fetchMeStats(session.user.id).then(setStats)}
+        />
+      ) : null}
 
       <View className="mt-6 flex-row border-b border-line px-5">
         {TABS.map(([id, label, test]) => {
@@ -143,6 +168,93 @@ export default function Me() {
         onClose={() => setMenuFor(null)}
       />
     </ScrollView>
+  );
+}
+
+// Grade card, wallet and shop, and the daily check-in (spec 3.3, 3.8).
+function Progress({ tier, stats, onCheckedIn }: { tier: string; stats: MeStats; onCheckedIn: () => void }) {
+  const { colors } = useTheme();
+  const [busy, setBusy] = useState(false);
+  const next = nextTier(tier);
+  const { done, streak } = checkinState(stats);
+  const trades = stats.rank?.counted_trades ?? 0;
+  const rating = stats.rank?.reviews_count ? ` · ${stats.rank.rating_bayes.toFixed(1)}` : "";
+
+  const checkIn = async () => {
+    setBusy(true);
+    const { data, error } = await supabase.rpc("check_in");
+    setBusy(false);
+    if (error) return Alert.alert("Couldn't check in", errorMessage(error));
+    const result = data as { checked_in: boolean; streak: number; points_awarded: number };
+    toast(
+      result.checked_in
+        ? `+${result.points_awarded} points · ${result.streak}-day streak`
+        : "Already checked in today",
+    );
+    onCheckedIn();
+  };
+
+  return (
+    <View className="mx-5 mt-3 gap-3">
+      <Pressable
+        accessibilityRole="link"
+        onPress={() => router.push("/grade")}
+        className="gap-2 rounded-2xl border border-line p-4"
+      >
+        <View className="flex-row items-center gap-2">
+          <GradeBadge tier={tier} />
+          <Text className="flex-1 text-[15px] text-ink">
+            {trades} {trades === 1 ? "trade" : "trades"}
+            {rating}
+          </Text>
+          <ChevronRight size={18} color={colors.muted} />
+        </View>
+        {next ? (
+          <>
+            <ProgressBar
+              value={stats.rank?.next_tier_progress ?? 0}
+              label={`Progress to ${GRADE_LETTERS[next]}`}
+            />
+            <Text className="text-[13px] text-muted">On the way to {GRADE_LETTERS[next]}</Text>
+          </>
+        ) : null}
+      </Pressable>
+      <View className="flex-row gap-3">
+        <Pressable
+          accessibilityRole="link"
+          onPress={() => router.push("/wallet")}
+          className="h-14 flex-1 flex-row items-center gap-3 rounded-2xl bg-surface px-4"
+        >
+          <WalletCards size={20} color={colors.ink} />
+          <Text className={`text-base font-bold ${stats.wallet.balance < 0 ? "text-danger" : "text-ink"}`}>
+            {stats.wallet.balance} pts
+          </Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="link"
+          onPress={() => router.push("/shop")}
+          className="h-14 flex-row items-center gap-3 rounded-2xl bg-surface px-4"
+        >
+          <ShoppingBag size={20} color={colors.ink} />
+          <Text className="text-base text-ink">Shop</Text>
+        </Pressable>
+      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ disabled: done || busy }}
+        disabled={done || busy}
+        onPress={() => void checkIn()}
+        className={`h-14 flex-row items-center gap-3 rounded-2xl px-4 ${done ? "bg-surface" : "bg-accent"}`}
+      >
+        <CalendarCheck size={20} color={done ? colors.muted : colors.onAccent} />
+        <Text className={`flex-1 text-base font-bold ${done ? "text-muted" : "text-on-accent"}`}>
+          {done ? "Checked in today" : "Check in today  +5"}
+        </Text>
+        {streak ? (
+          <Text className={`text-[13px] ${done ? "text-muted" : "text-on-accent"}`}>{streak}-day streak</Text>
+        ) : null}
+      </Pressable>
+    </View>
   );
 }
 

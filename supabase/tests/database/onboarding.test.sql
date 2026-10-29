@@ -47,7 +47,8 @@ select is(
   '{"background": "bg_sky", "top": "top_hoodie_navy", "face": "face_smile", "head": "head_beanie"}'::jsonb,
   'the starter look is equipped and returned by get_my_account'
 );
-select is((select count(*)::int from public.inventory where user_id = (select id from pending)), 4, 'the starter items are owned');
+select is((select count(*)::int from public.inventory i join public.shop_items s on s.id = i.item_id
+           where i.user_id = (select id from pending) and s.slot <> 'body'), 4, 'the starter items are owned');
 select is((public.get_my_account()) ->> 'display_name', 't_maple_23', 'get_my_account returns the nickname');
 select throws_ok(
   $$ insert into public.avatar_loadout (user_id, slot, item_id) select (select id from pending), 'frame', id from public.shop_items limit 1 $$,

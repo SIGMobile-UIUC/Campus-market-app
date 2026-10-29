@@ -313,7 +313,7 @@ A **trade** is an agreement between one seller and one buyer for one or more ite
 | PTS-3 | Spending | P0 shop and nickname, P1 bump | Shop cosmetics, nickname changes and bumps. Spending needs a balance at least equal to the price. |
 | PTS-4 | Negative balance | P0 | Reversals can push a balance below zero. While negative, the user cannot spend, and new earnings pay off the debt first. |
 | PTS-5 | Item shop | P0 | Items by slot and rarity, with prices. Some items are campus-only, time-limited or require a minimum trust grade. Purchases are final. |
-| PTS-6 | Avatar | P0 | Slots: head, face, top, accessory, background, frame. One item per slot. The frame color follows the trust grade unless a frame item is equipped. |
+| PTS-6 | Avatar | P0 | Slots: body, head, face, top, accessory, background, frame. One item per slot. Bodies (five skin tones, a puppy and a kitty) are free for everyone. The frame color follows the trust grade unless a frame item is equipped. |
 | PTS-7 | Daily check-in | P0 | One check-in per local day (the user's time zone) with a streak counter. |
 | PTS-8 | Pet | P1 | One pet with moods from recent activity: happy after trades and check-ins, sleepy after 7 days without activity, worried while the owner is B− or C. Treats from the shop improve mood for 3 days. |
 | PTS-9 | Seasonal events | P2 | Limited items and bonus points during finals and move-out weeks. |
@@ -1468,6 +1468,8 @@ The internal dashboard shows points issued and spent per week by source and sink
 - Starter looks: `app_config.starter_avatars` lists the looks offered at onboarding by item sku. `complete_onboarding` grants the chosen look's items and equips them. Starter items have `active = false`, so the shop never sells them.
 - Grade-gated items check `profiles.tier` at purchase; a user who later drops below the grade keeps the item.
 - The app renders the avatar from bundled SVG layers by `asset_key`. Without a frame item, the frame color follows the trust grade.
+- Bodies: every account owns every `body` item (a trigger on new profiles, a backfill when one is added), so choosing a skin tone or an animal is free. Without one, the avatar is the classic cream mascot.
+- The shop sorts by price either way or by rarity; epic items use gradient layers so they stand apart from common colors.
 - Pet mood is computed on read from the last completed trade, the last check-in, `treat_until` and the trust grade; no job touches pets.
 - Check-in: `insert into checkins ... on conflict do nothing` keyed by the user's local date (`profiles.timezone`); the streak is yesterday's streak plus one, else 1; `award_points('checkin', local_date)` plus the streak bonus on every 7th day.
 
@@ -1920,7 +1922,7 @@ create type public.dispute_status  as enum ('awaiting_response', 'under_review',
 create type public.evidence_kind   as enum ('photo', 'statement');   -- 'gps' with check-ins (P1)
 create type public.penalty_reason  as enum ('no_show', 'harassment', 'late_cancel', 'bad_faith');
 create type public.ledger_kind     as enum ('earn', 'spend', 'reversal', 'refund', 'correction');
-create type public.item_slot       as enum ('head', 'face', 'top', 'accessory', 'background', 'frame',
+create type public.item_slot       as enum ('body', 'head', 'face', 'top', 'accessory', 'background', 'frame',
                                             'pet_accessory', 'pet_treat');
 create type public.rarity          as enum ('common', 'rare', 'epic', 'legendary', 'limited');
 create type public.report_target   as enum ('listing', 'user', 'message');

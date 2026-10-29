@@ -2,7 +2,7 @@
 -- the shop and the avatar loadout (spec 1.7.2, 2.5, 4.13, 6.8).
 begin;
 \ir _helpers.psql
-select plan(28);
+select plan(29);
 select tests.build_matrix();
 
 create function tests.balance(p_name text) returns int language sql as $$
@@ -41,6 +41,9 @@ end;
 $$;
 
 select is((select count(*)::int from public.wallets w join tests.matrix m on m.id = w.user_id), 7, 'every profile has a wallet');
+select is((select count(*)::int from public.inventory i join public.shop_items s on s.id = i.item_id
+           where i.user_id = tests.user_id('alpha1') and s.slot = 'body'),
+          (select count(*)::int from public.shop_items where slot = 'body'), 'every account owns every body');
 
 -- Trades (1.7.2): a paid trade pays the seller 50 and the buyer 30, plus 100 for each side's first counted trade.
 select is((tests.complete('alpha1', 'alpha2') ->> 'points_awarded')::int, 150, 'completing a paid trade reports what the completer earned');

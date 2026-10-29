@@ -12,6 +12,8 @@ import { Button } from "@/ui/Button";
 import { Chip } from "@/ui/Chip";
 import { GRADE_LETTERS } from "@/ui/GradeBadge";
 import { Header } from "@/ui/Header";
+import { Menu } from "@/ui/Menu";
+import { TextLink } from "@/ui/TextLink";
 import { toast } from "@/ui/Toast";
 
 type Slot = keyof Loadout;
@@ -29,11 +31,25 @@ type Item = {
 type Stock = { items: Item[]; owned: Set<string>; balance: number };
 
 const SLOTS: [Slot, string][] = [
+  ["body", "Body"],
   ["background", "Background"],
   ["top", "Top"],
   ["face", "Face"],
   ["head", "Head"],
 ];
+
+type Sort = "low" | "high" | "rarity";
+const SORTS: [Sort, string][] = [
+  ["low", "Lowest price"],
+  ["high", "Highest price"],
+  ["rarity", "Rarest first"],
+];
+const RARITY = ["common", "rare", "epic", "legendary", "limited"];
+const COMPARE: Record<Sort, (a: Item, b: Item) => number> = {
+  low: (a, b) => a.price - b.price,
+  high: (a, b) => b.price - a.price,
+  rarity: (a, b) => RARITY.indexOf(b.rarity) - RARITY.indexOf(a.rarity) || a.price - b.price,
+};
 
 const MESSAGES = {
   INSUFFICIENT_POINTS: "You don't have enough points for this.",
@@ -51,8 +67,7 @@ async function load(): Promise<Stock | null> {
       .in(
         "slot",
         SLOTS.map(([slot]) => slot),
-      )
-      .order("price"),
+      ),
     supabase.from("inventory").select("item_id").gt("quantity", 0),
     supabase.rpc("get_wallet"),
   ]);
@@ -70,7 +85,9 @@ export default function Shop() {
   const { account, refresh } = useAccount();
   const insets = useSafeAreaInsets();
   const [stock, setStock] = useState<Stock | null | undefined>(undefined);
-  const [slot, setSlot] = useState<Slot>("background");
+  const [slot, setSlot] = useState<Slot>("body");
+  const [sort, setSort] = useState<Sort>("low");
+  const [sorting, setSorting] = useState(false);
   const [picked, setPicked] = useState<Item | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -82,12 +99,14 @@ export default function Shop() {
   const loadout = account?.avatar ?? {};
   const tier = account?.tier ?? "b";
   // What the shop sells to this user, and anything they already own.
-  const shown = (stock?.items ?? []).filter(
-    (item) =>
-      item.slot === slot &&
-      (stock?.owned.has(item.id) ||
-        (item.active && (!item.campus_id || item.campus_id === account?.campus?.id))),
-  );
+  const shown = (stock?.items ?? [])
+    .filter(
+      (item) =>
+        item.slot === slot &&
+        (stock?.owned.has(item.id) ||
+          (item.active && (!item.campus_id || item.campus_id === account?.campus?.id))),
+    )
+    .sort(COMPARE[sort]);
 
   const run = async (fn: string, args: Record<string, unknown>, done: string) => {
     setBusy(true);
@@ -156,7 +175,7 @@ export default function Shop() {
                 {stock.balance} pts
               </Text>
             </View>
-            <View className="flex-row gap-2">
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
               {SLOTS.map(([id, label]) => (
                 <Chip
                   key={id}
@@ -168,6 +187,12 @@ export default function Shop() {
                   }}
                 />
               ))}
+            </ScrollView>
+            <View className="flex-row justify-end">
+              <TextLink
+                label={`Sort: ${SORTS.find(([id]) => id === sort)![1]}`}
+                onPress={() => setSorting(true)}
+              />
             </View>
             <View className="flex-row flex-wrap gap-3">
               {shown.map((item) => (
@@ -191,6 +216,12 @@ export default function Shop() {
           ) : null}
         </>
       ) : null}
+      <Menu
+        visible={sorting}
+        title="Sort items"
+        options={SORTS.map(([id, label]) => ({ label, onPress: () => setSort(id) }))}
+        onClose={() => setSorting(false)}
+      />
     </View>
   );
 }
@@ -224,7 +255,7 @@ function ItemTile({
     >
       <Avatar loadout={preview} size={72} />
       <Text className="text-[15px] font-bold text-ink">{item.name}</Text>
-      <Text className="text-[13px] capitalize text-muted">{item.rarity}</Text>
+      <Text className="text-[13px] capitalize text-muted">{item.slot === "body" ? "Free" : item.rarity}</Text>
       <Text className="text-[13px] font-bold text-ink">
         {equipped ? "Wearing" : owned ? "Owned" : `${item.price} pts`}
       </Text>

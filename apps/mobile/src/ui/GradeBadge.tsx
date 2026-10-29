@@ -1,6 +1,7 @@
 import { Text, View } from "react-native";
 
-const LETTERS: Record<string, string> = {
+// Lowest to highest.
+export const GRADE_LETTERS: Record<string, string> = {
   c: "C",
   b_minus: "B−",
   b: "B",
@@ -33,10 +34,10 @@ export function GradeBadge({ tier }: { tier: string }) {
   const style = STYLE[tier] ?? STYLE.b;
   return (
     <View
-      accessibilityLabel={`Grade ${SPOKEN[tier] ?? LETTERS[tier] ?? "B"}`}
+      accessibilityLabel={`Grade ${SPOKEN[tier] ?? GRADE_LETTERS[tier] ?? "B"}`}
       className={`h-6 min-w-6 items-center justify-center rounded-md px-1 ${style.box}`}
     >
-      <Text className={`text-xs font-extrabold ${style.text}`}>{LETTERS[tier] ?? "B"}</Text>
+      <Text className={`text-xs font-extrabold ${style.text}`}>{GRADE_LETTERS[tier] ?? "B"}</Text>
     </View>
   );
 }

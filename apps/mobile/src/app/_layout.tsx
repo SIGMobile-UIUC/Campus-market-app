@@ -68,6 +68,7 @@ function Shell() {
               <Stack.Screen name="trade/[id]" />
               <Stack.Screen name="trades" />
               <Stack.Screen name="review/[tradeId]" />
+              <Stack.Screen name="dispute/[tradeId]" />
               <Stack.Screen name="wallet" />
               <Stack.Screen name="grade" />
               <Stack.Screen name="shop" />

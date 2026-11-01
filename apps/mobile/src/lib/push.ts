@@ -54,7 +54,7 @@ export async function disablePush(): Promise<void> {
   registered = null;
 }
 
-// A tapped notification opens its chat or trade.
+// A tapped notification opens its chat, trade or dispute.
 export function openNotification(response: Notifications.NotificationResponse) {
   const data = response.notification.request.content.data as {
     type?: string;
@@ -63,6 +63,8 @@ export function openNotification(response: Notifications.NotificationResponse) {
   };
   if (data.type === "chat" && data.chat_id) {
     router.push({ pathname: "/chat/[id]", params: { id: data.chat_id } });
+  } else if (data.type === "dispute" && data.trade_id) {
+    router.push({ pathname: "/dispute/[tradeId]", params: { tradeId: data.trade_id } });
   } else if (data.type === "trade" && data.trade_id) {
     router.push({ pathname: "/trade/[id]", params: { id: data.trade_id } });
   }

@@ -132,7 +132,7 @@ Done when: two phones complete a trade end to end on staging, with push notifica
 | APP-21 | Public profile (ACC-4): nickname, school and grade badges, review tag counts, active listings, member since, reply time; the seller's trade count and reply time on the listing page; offer counts on request cards | Backend | |
 | APP-13 | Report and block menus; account status page; admin queue and case view for admins; removed messages shown as removed in the chat | App | Done; profile menus come with the public profile (APP-21), the contact address in Settings with APP-19 |
 | APP-14 | Dispute flow with in-app camera evidence | App | Done with the system camera (no library); a camera screen of our own (expo-camera) needs a new development build |
-| APP-19 | Settings: notifications, privacy and consent changes, blocked users, community rules, contact address, data credits (GeoNames, CC BY 4.0), account (entry to account deletion) | App | |
+| APP-19 | Settings: notifications, privacy and consent changes, blocked users, community rules, contact address, data credits (GeoNames, CC BY 4.0), account (entry to account deletion) | App | Done; notifications open the phone's settings (per-type switches and lock-screen previews are P1, ACC-9); the Delete account entry comes with FN-2 |
 | TST-3 | Race test for the daily points cap; pgTAP for trust grades and points rules | Backend | |
 
 Done when: after a completed trade both users see their new points and, once the job runs, their grade; a report from three users hides a listing.
@@ -143,7 +143,7 @@ Done when: after a completed trade both users see their new points and, once the
 | --- | --- | --- | --- |
 | DB-15 | `private.events`, `log_events`, `app_config.event_catalog`; `daily-maintenance` job (cleanup, purge, wallet audit) | Backend | |
 | APP-15 | Analytics queue with consent; the P0 event catalog from spec 4.17.5 | App | |
-| FN-2 | `delete-account` and `media-purge` | Backend | |
+| FN-2 | `delete-account` and `media-purge`; the Delete account entry in Settings | Backend | |
 | INF-5 | Merge to `main` applies migrations to staging; preview builds for testers | Platform | Migrations done (the `staging` job in CI); preview builds later |
 | QA-1 | Real-device pass on iOS and Android, demo seed data, demo script rehearsed twice | All | |
 

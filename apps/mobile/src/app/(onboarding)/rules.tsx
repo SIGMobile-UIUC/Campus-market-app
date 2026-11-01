@@ -5,15 +5,11 @@ import { Linking, Text, View } from "react-native";
 import { useAccount } from "@/features/account/account";
 import { errorMessage } from "@/lib/errors";
 import { supabase } from "@/lib/supabase";
+import { TERMS_URL, TERMS_VERSION } from "@/lib/terms";
 import { Button } from "@/ui/Button";
 import { Screen } from "@/ui/Screen";
 import { TextLink } from "@/ui/TextLink";
 import { Toggle } from "@/ui/Toggle";
-
-// Stored with the consent row; matches the version line of docs/TERMS.md.
-const TERMS_VERSION = "2026-10";
-// The public repo renders the Terms until there is a website.
-const TERMS_URL = "https://github.com/SIGMobile-UIUC/Campus-market-app/blob/main/docs/TERMS.md";
 
 const RULES = [
   "Meet in public places, like the spots suggested in each trade.",

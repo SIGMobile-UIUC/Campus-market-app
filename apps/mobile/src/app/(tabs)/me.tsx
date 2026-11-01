@@ -6,6 +6,7 @@ import {
   Gavel,
   Handshake,
   Heart,
+  Settings,
   ShieldCheck,
   ShoppingBag,
   WalletCards,
@@ -21,9 +22,7 @@ import { rowToCard } from "@/features/listings/types";
 import { useMyListings, type MyListing } from "@/features/listings/useMyListings";
 import { checkinState, fetchMeStats, nextTier, type MeStats } from "@/features/points/points";
 import { errorMessage } from "@/lib/errors";
-import { disablePush } from "@/lib/push";
 import { supabase } from "@/lib/supabase";
-import { Button } from "@/ui/Button";
 import { GRADE_LETTERS, GradeBadge } from "@/ui/GradeBadge";
 import { ListingCard } from "@/ui/ListingCard";
 import { Menu, type MenuOption } from "@/ui/Menu";
@@ -40,7 +39,7 @@ const TABS: [Tab, string, (l: MyListing) => boolean][] = [
 ];
 
 // Me (spec 3.3): the grade card, wallet, shop and daily check-in (APP-12), then My listings (APP-20).
-// Account status and, for admins, the moderation queue (APP-13). Sign-out moves into Settings (APP-19).
+// Account status, settings and, for admins, the moderation queue (APP-13, APP-19).
 export default function Me() {
   const { campus, colors } = useTheme();
   const { account, session } = useAccount();
@@ -153,16 +152,10 @@ export default function Me() {
         <LinkRow Icon={Handshake} label="My trades" onPress={() => router.push("/trades")} />
         <LinkRow Icon={Heart} label="Favorites" onPress={() => router.push("/favorites")} />
         <LinkRow Icon={ShieldCheck} label="Account status" onPress={() => router.push("/account-status")} />
+        <LinkRow Icon={Settings} label="Settings" onPress={() => router.push("/settings")} />
         {stats?.admin ? (
           <LinkRow Icon={Gavel} label="Moderation" onPress={() => router.push("/admin")} />
         ) : null}
-      </View>
-      <View className="mx-5 mt-4">
-        <Button
-          variant="secondary"
-          label="Sign out"
-          onPress={() => void disablePush().finally(() => supabase.auth.signOut({ scope: "local" }))}
-        />
       </View>
 
       <Menu

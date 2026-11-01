@@ -21,7 +21,8 @@ create table tests.refs (name text primary key, ref text not null);
 grant select, insert on tests.refs to authenticated;
 create function tests.ref(p_name text) returns text language sql stable as $$ select ref from tests.refs where name = p_name; $$;
 create function tests.queue() returns text[] language sql as $$
-  select array_agg(c ->> 'target_type' order by c ->> 'target_type') from jsonb_array_elements(public.admin_queue()) c;
+  select array_agg(c ->> 'target_type' order by c ->> 'target_type') from jsonb_array_elements(public.admin_queue()) c
+  where (c ->> 'target_user_id')::uuid in (select id from tests.matrix);
 $$;
 
 select tests.remember('desk', tests.create_listing_as('alpha1'));

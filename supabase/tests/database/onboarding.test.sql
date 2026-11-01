@@ -1,7 +1,7 @@
 -- Profile creation on confirmation and complete_onboarding (spec 4.6.1, 6.3).
 begin;
 \ir _helpers.psql
-select plan(28);
+select plan(29);
 select tests.build_matrix();
 
 -- Campus assignment by email domain.
@@ -50,6 +50,7 @@ select is(
 select is((select count(*)::int from public.inventory i join public.shop_items s on s.id = i.item_id
            where i.user_id = (select id from pending) and s.slot <> 'body'), 4, 'the starter items are owned');
 select is((public.get_my_account()) ->> 'display_name', 't_maple_23', 'get_my_account returns the nickname');
+select is(public.set_consent(false, true, 'v1') ->> 'analytics', 'false', 'consent choices can change after onboarding');
 select throws_ok(
   $$ insert into public.avatar_loadout (user_id, slot, item_id) select (select id from pending), 'frame', id from public.shop_items limit 1 $$,
   '42501', null, 'users cannot equip items directly'

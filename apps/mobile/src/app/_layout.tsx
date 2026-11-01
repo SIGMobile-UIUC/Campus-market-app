@@ -73,6 +73,7 @@ function Shell() {
               <Stack.Screen name="grade" />
               <Stack.Screen name="shop" />
               <Stack.Screen name="account-status" />
+              <Stack.Screen name="settings" />
               <Stack.Screen name="admin/index" />
               <Stack.Screen name="admin/[id]" />
               <Stack.Screen

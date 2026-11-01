@@ -26,7 +26,7 @@ select set_eq(
         'check_in', 'purchase_item', 'equip_item', 'get_wallet',
         'report', 'block_user', 'unblock_user', 'admin_queue', 'admin_open_case_data', 'admin_resolve_report',
         'admin_set_hidden', 'admin_enforce', 'admin_set_config',
-        'open_dispute', 'respond_dispute', 'withdraw_dispute', 'admin_resolve_dispute'],
+        'open_dispute', 'respond_dispute', 'withdraw_dispute', 'admin_resolve_dispute', 'set_consent'],
   'security definer functions in public match the allowlist'
 );
 

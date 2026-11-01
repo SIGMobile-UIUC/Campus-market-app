@@ -1,3 +1,4 @@
+import { router } from "expo-router";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Alert, Linking, ScrollView, Text, View } from "react-native";
 
@@ -116,7 +117,12 @@ export default function Settings() {
       </Section>
 
       <Section title="Account">
-        <Text className="text-[15px] text-muted">{account?.email}</Text>
+        <Text className="text-[15px] text-muted">
+          {account?.display_name} · {account?.email}
+        </Text>
+        <View className="items-start">
+          <TextLink label="Change nickname" onPress={() => router.push("/nickname")} />
+        </View>
         <Button
           variant="secondary"
           label="Sign out"

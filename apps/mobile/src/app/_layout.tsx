@@ -1,13 +1,15 @@
 import "../../global.css";
 
-import { Stack } from "expo-router";
+import { Stack, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 
 import { AccountProvider, useAccount } from "@/features/account/account";
 import { ChatProvider } from "@/features/chat/ChatProvider";
 import { toCampus } from "@/features/campus/campuses";
+import { setAnalytics, trackScreen } from "@/lib/analytics";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/ui/Button";
 import { ThemeProvider } from "@/ui/theme";
 import { Toaster } from "@/ui/Toast";
@@ -28,6 +30,25 @@ function Shell() {
   const onboarded = account?.onboarded === true;
   // Right after sign-in the session arrives a moment before the account.
   const waiting = loading || (!!session && !account && !failed);
+  const userId = session?.user.id;
+  const screen =
+    useSegments()
+      .filter((s) => !s.startsWith("("))
+      .join("/") || "home";
+
+  // Analytics follow the signed-in user's consent (INS-1); screen_view follows the route.
+  useEffect(() => {
+    if (!userId || !onboarded) {
+      setAnalytics(false);
+      return;
+    }
+    void supabase
+      .from("consents")
+      .select("analytics")
+      .maybeSingle()
+      .then(({ data }) => setAnalytics(!!data?.analytics));
+  }, [userId, onboarded]);
+  useEffect(() => trackScreen(screen), [screen]);
 
   return (
     // Keyed by user so the market choice of one account does not carry over to the next.

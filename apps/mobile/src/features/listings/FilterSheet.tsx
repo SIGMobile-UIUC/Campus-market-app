@@ -3,6 +3,7 @@ import { Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAccount } from "@/features/account/account";
+import { track } from "@/lib/analytics";
 import { formatPrice, parsePrice } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/ui/Button";
@@ -72,7 +73,9 @@ export function FilterSheet({
   const apply = () => {
     const priceMin = parsePrice(min);
     const priceMax = parsePrice(max);
-    onApply({ ...draft, price_min: priceMin ?? undefined, price_max: priceMax ?? undefined });
+    const value = { ...draft, price_min: priceMin ?? undefined, price_max: priceMax ?? undefined };
+    track("filter_apply", { filters: value });
+    onApply(value);
   };
 
   return (

@@ -3,6 +3,7 @@ import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
 import { Platform } from "react-native";
 
+import { track } from "./analytics";
 import { supabase } from "./supabase";
 
 // Push notifications (CHT-5, spec 4.16). The server decides what to send; the app registers the
@@ -29,6 +30,7 @@ export async function enablePush(ask: boolean): Promise<void> {
     let { status, canAskAgain } = await Notifications.getPermissionsAsync();
     if (status !== "granted" && ask && canAskAgain) {
       ({ status } = await Notifications.requestPermissionsAsync());
+      track("notification_permission", { granted: status === "granted" });
     }
     if (status !== "granted") return;
     if (Platform.OS === "android") {
@@ -61,6 +63,7 @@ export function openNotification(response: Notifications.NotificationResponse) {
     chat_id?: string;
     trade_id?: string;
   };
+  track("push_open", { type: data.type ?? null });
   if (data.type === "chat" && data.chat_id) {
     router.push({ pathname: "/chat/[id]", params: { id: data.chat_id } });
   } else if (data.type === "dispute" && data.trade_id) {

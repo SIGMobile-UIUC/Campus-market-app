@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import type { ReactElement } from "react";
 import { ActivityIndicator, FlatList, RefreshControl, Text, useWindowDimensions, View } from "react-native";
 
+import { track } from "@/lib/analytics";
 import { ListingCard } from "@/ui/ListingCard";
 import { TextLink } from "@/ui/TextLink";
 
@@ -27,12 +28,15 @@ export function ResultsGrid({
       keyExtractor={(row: FeedRow) => row.id}
       numColumns={2}
       columnWrapperStyle={{ gap: 12, paddingHorizontal: 20 }}
-      renderItem={({ item }) => (
+      renderItem={({ item, index }) => (
         <View style={{ width: tileWidth }}>
           <ListingCard
             variant="tile"
             card={toCard(item)}
-            onPress={() => router.push({ pathname: "/listing/[id]", params: { id: item.id } })}
+            onPress={() => {
+              track("select_item", { list: results.list, listing_id: item.id, index });
+              router.push({ pathname: "/listing/[id]", params: { id: item.id } });
+            }}
           />
         </View>
       )}

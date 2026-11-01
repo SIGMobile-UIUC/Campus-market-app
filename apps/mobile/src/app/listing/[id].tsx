@@ -19,6 +19,7 @@ import { Avatar, type Loadout } from "@/features/avatar/Avatar";
 import { conditionLabel, hiddenNote, paymentLabel } from "@/features/listings/types";
 import { confirmBlock, ReportMenu, type ReportTarget } from "@/features/moderation/moderation";
 import { fetchProfile, replyLabel, tradesLabel, type PublicProfile } from "@/features/profile/profile";
+import { priceBucket, track } from "@/lib/analytics";
 import { errorMessage } from "@/lib/errors";
 import { formatAgo, formatPrice } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
@@ -60,6 +61,8 @@ type Listing = {
   status: "active" | "sold_out" | "closed";
   hidden: boolean;
   hidden_reason: string | null;
+  category: string;
+  created_at: string;
   bumped_at: string;
   zone: { name: string } | null;
   items: Item[];
@@ -74,7 +77,7 @@ type Listing = {
 
 // Readable through the listings policy only, so a listing the caller may not see comes back empty.
 const SELECT = `id, owner_id, kind, title, description, visibility, area_label, payment_methods, budget_cents, status,
-  hidden, hidden_reason,
+  hidden, hidden_reason, category, created_at,
   bumped_at, zone:campus_zones(name), items(id, position, name, price_cents, negotiable, condition, status),
   listing_photos(id, path, thumb_path, blurhash, position, item_id),
   owner:profiles!listings_owner_id_fkey(display_name, tier, campus:campuses!profiles_campus_id_fkey(short_name, name),
@@ -105,6 +108,32 @@ export default function ListingPage() {
   const [picked, setPicked] = useState<string[]>([]);
   const [menu, setMenu] = useState(false);
   const [reporting, setReporting] = useState<ReportTarget | null>(null);
+  const loaded = listing && listing !== "failed" ? listing : null;
+
+  // view_item when the page opens and item_engagement with the time spent when it closes (4.17.5).
+  useEffect(() => {
+    if (!loaded) return;
+    const opened = Date.now();
+    track("view_item", {
+      listing_id: loaded.id,
+      kind: loaded.kind,
+      category: loaded.category,
+      price_bucket: priceBucket(
+        loaded.kind === "wanted" ? (loaded.budget_cents ?? 0) : (loaded.items[0]?.price_cents ?? 0),
+      ),
+      condition: loaded.kind === "item" ? (loaded.items[0]?.condition ?? null) : null,
+      photo_count: loaded.listing_photos.length,
+      listing_age_hours: Math.floor((opened - new Date(loaded.created_at).getTime()) / 3_600_000),
+    });
+    return () => {
+      const seconds = (Date.now() - opened) / 1000;
+      track("item_engagement", {
+        listing_id: loaded.id,
+        seconds_bucket:
+          seconds < 10 ? "under_10" : seconds < 30 ? "10_30" : seconds < 120 ? "30_120" : "120_plus",
+      });
+    };
+  }, [loaded?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // On focus, so coming back from the editor shows the saved changes.
   useFocusEffect(
@@ -162,6 +191,11 @@ export default function ListingPage() {
   const toggleSave = async () => {
     const next = !saved;
     setSaved(next);
+    track(next ? "add_to_wishlist" : "remove_from_wishlist", {
+      listing_id: listing.id,
+      category: listing.category,
+      price_bucket: priceBucket(listing.items[0]?.price_cents ?? listing.budget_cents ?? 0),
+    });
     const { error } = next
       ? await supabase.from("favorites").insert({ user_id: session?.user.id, listing_id: listing.id })
       : await supabase

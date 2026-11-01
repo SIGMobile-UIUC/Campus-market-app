@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import { Alert } from "react-native";
 
+import { track } from "@/lib/analytics";
 import { errorMessage } from "@/lib/errors";
 import { supabase } from "@/lib/supabase";
 
@@ -151,7 +152,9 @@ export async function openChat(listingId: string, items: string[] = []) {
     );
     return;
   }
-  const chatId = (data as { chat_id: string }).chat_id;
+  const { chat_id: chatId, created } = data as { chat_id: string; created: boolean };
+  if (created)
+    track("chat_start", { listing_id: listingId, source: items.length ? "sale_items" : "listing_page" });
   router.push({ pathname: "/chat/[id]", params: { id: chatId } });
   if (items.length)
     router.push({ pathname: "/propose/[chatId]", params: { chatId, items: items.join(",") } });

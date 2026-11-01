@@ -3,6 +3,7 @@ import { ChevronRight, Tag } from "lucide-react-native";
 import { Pressable, Text, View } from "react-native";
 
 import { MODES } from "@/features/catalog/catalog";
+import { track } from "@/lib/analytics";
 import { useTheme } from "@/ui/theme";
 
 const mode = (id: string) => MODES.find((m) => m.id === id)!;
@@ -42,7 +43,10 @@ export default function SellType() {
           key={id}
           accessibilityRole="button"
           // The sheet gives way to the editor, so Back from the editor returns to Home.
-          onPress={() => router.replace(EDITORS[id])}
+          onPress={() => {
+            track("sell_start", { kind: id });
+            router.replace(EDITORS[id]);
+          }}
           className="flex-row items-center gap-3.5 rounded-2xl border border-line p-3"
         >
           <View

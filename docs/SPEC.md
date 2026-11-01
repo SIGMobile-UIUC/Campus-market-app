@@ -1533,7 +1533,7 @@ What many apps also collect and Campus Market does not: advertising identifiers 
 | Context | Every event carries `session_id` (new after 30 minutes in the background), `screen`, app version, platform and OS version. The server adds `campus_id`, the account type (student, waitlist, general) and the market. |
 | Queue | In memory and AsyncStorage; flush every 30 seconds, on background, or at 50 events; each event gets an `event_id` at creation. |
 | Batching | List impressions are one event per loaded page (up to 40 listing ids with positions), not one per card. |
-| Write | `log_events(events)` database function: checks consent, validates names and props against the catalog, accepts at most 50 events per call and 1,000 per user per hour, and inserts with `on conflict (event_id) do nothing`, so retries never double count. No Edge Function. |
+| Write | `log_events(events)` database function: checks consent, skips events whose name or props are not in the catalog (so one stale event never blocks a queue), accepts at most 50 events per call and 1,000 per user per hour, and inserts with `on conflict (event_id) do nothing`, so retries never double count. No Edge Function. |
 | Time | `occurred_at` clamped to `[received_at - 7 days, received_at]`. |
 | Search terms | Lowercased and trimmed; terms with email or phone patterns, 5 or more digits, or over 40 characters are dropped. Raw terms are blanked after 30 days. |
 | Storage | One table, `private.events`, indexed by `received_at`. At the beta estimate (about 75,000 events and 30 MB a week) raw events reach about 1.5 GB at 12 months, inside the Pro plan's 8 GB. If the table outgrows that, events older than 3 months move to compressed files in a private R2 bucket until the 12-month deletion. |
@@ -2775,7 +2775,7 @@ PostgREST returns HTTP 400 with `{ "code": "P0001", "message": "ITEM_UNAVAILABLE
 | `register_push_token(token, platform)` | Expo push token, `ios` or `android` | none (a token used by another account moves to the caller) | `VALIDATION_FAILED` |
 | `unregister_push_token(token)` | text | none (only the caller's own token) | |
 | `my_account_status()` (with appeals, P1) | none | `{ penalties[], active_actions[] }` (`appealable[]` from P1); until then the app reads its own `enforcement_actions` and `penalties` rows | |
-| `log_events(events)` (DB-15) | jsonb: `[{event_id, name, occurred_at, session_id, screen, props, context}]`, at most 50 | `{ accepted }` | `FORBIDDEN` (no analytics consent), `VALIDATION_FAILED` (name or prop not in the catalog), `RATE_LIMITED` (1,000 per hour) |
+| `log_events(events)` | jsonb: `[{event_id, name, occurred_at, session_id, screen, props, context}]`, at most 50 | `{ accepted }`; events with an unknown name or prop are skipped | `FORBIDDEN` (no analytics consent), `VALIDATION_FAILED` (not an array, or over 50), `RATE_LIMITED` (1,000 per hour) |
 
 Sign-in uses Supabase Auth directly (`signInWithOtp` with `shouldCreateUser: true`, then `verifyOtp`). The Before User Created hook returns these messages to the app: `EMAIL_NOT_ALLOWED` (disposable domain), `PLUS_ADDRESS_NOT_ALLOWED`, `REGISTRATION_BLOCKED`.
 

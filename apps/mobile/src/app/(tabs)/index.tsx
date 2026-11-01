@@ -9,7 +9,7 @@ import { categoryIcon, useCategories } from "@/features/catalog/categories";
 import { ResultsGrid } from "@/features/listings/ResultsGrid";
 import { MarketChips, useScope } from "@/features/listings/Toolbar";
 import { toCard, type Filters } from "@/features/listings/types";
-import { WantedCard } from "@/features/listings/WantedCard";
+import { useOfferCounts, WantedCard } from "@/features/listings/WantedCard";
 import { useListings } from "@/features/listings/useListings";
 import { ListingCard } from "@/ui/ListingCard";
 import { CategoryTile, ModeTile } from "@/ui/Tiles";
@@ -133,6 +133,7 @@ export default function Home() {
 function WantedModule({ scope }: { scope: "campus" | "open" }) {
   const { account } = useAccount();
   const { rows } = useListings({ scope, filters: { mode: "wanted" }, limit: 6 });
+  const offers = useOfferCounts(rows);
   if (!rows.length) return null;
   return (
     <View className="pt-6">
@@ -151,7 +152,11 @@ function WantedModule({ scope }: { scope: "campus" | "open" }) {
       >
         {rows.map((row) => (
           <View key={row.id} style={{ width: 280 }}>
-            <WantedCard row={row} mine={row.owner.display_name === account?.display_name} />
+            <WantedCard
+              row={row}
+              offers={offers.get(row.id)}
+              mine={row.owner.display_name === account?.display_name}
+            />
           </View>
         ))}
       </ScrollView>

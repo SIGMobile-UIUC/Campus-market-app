@@ -117,10 +117,15 @@ export default function ChatRoom() {
       <Header
         title={partnerName}
         titleView={() => (
-          <View className="flex-row items-center gap-2">
+          <Pressable
+            accessibilityRole="link"
+            disabled={!partner}
+            onPress={() => partner && router.push({ pathname: "/profile/[id]", params: { id: partner.id } })}
+            className="flex-row items-center gap-2"
+          >
             <Text className="text-[17px] font-bold text-ink">{partnerName}</Text>
             {partner ? <GradeBadge tier={partner.tier} /> : null}
-          </View>
+          </Pressable>
         )}
         right={() => <MenuButton label="Chat options" onPress={() => setMenu("chat")} />}
       />

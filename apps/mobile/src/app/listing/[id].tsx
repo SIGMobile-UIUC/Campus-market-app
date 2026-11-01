@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { Check, Heart } from "lucide-react-native";
-import { useCallback, useState } from "react";
+import { Check, ChevronRight, Heart } from "lucide-react-native";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -18,6 +18,7 @@ import { openChat } from "@/features/chat/api";
 import { Avatar, type Loadout } from "@/features/avatar/Avatar";
 import { conditionLabel, paymentLabel } from "@/features/listings/types";
 import { confirmBlock, ReportMenu, type ReportTarget } from "@/features/moderation/moderation";
+import { fetchProfile, replyLabel, tradesLabel, type PublicProfile } from "@/features/profile/profile";
 import { errorMessage } from "@/lib/errors";
 import { formatAgo, formatPrice } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
@@ -88,8 +89,8 @@ async function fetchListing(id: string): Promise<{ listing: Listing | null | "fa
   return { listing: (data as unknown as Listing) ?? null, saved: !!favorite.data };
 }
 
-// Listing page (spec 3.3). The seller's trade count and reply time come with the public profile (APP-21);
-// the meetup map and similar items (DSC-6) are P1.
+// Listing page (spec 3.3). The seller row shows their trade count and reply time and opens their
+// profile (APP-21); the meetup map and similar items (DSC-6) are P1.
 export default function ListingPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session } = useAccount();
@@ -311,11 +312,21 @@ function Carousel({ photos }: { photos: PhotoRow[] }) {
 
 function Seller({ listing }: { listing: Listing }) {
   const owner = listing.owner;
+  const { colors } = useTheme();
+  const [stats, setStats] = useState<PublicProfile | null>(null);
+  useEffect(() => {
+    void fetchProfile(listing.owner_id).then(setStats);
+  }, [listing.owner_id]);
   const loadout = Object.fromEntries(
     (owner?.avatar_loadout ?? []).map((l) => [l.slot, l.shop_items?.asset_key]),
   ) as Loadout;
   return (
-    <View className="flex-row items-center gap-3">
+    <Pressable
+      accessibilityRole="link"
+      disabled={!owner}
+      onPress={() => router.push({ pathname: "/profile/[id]", params: { id: listing.owner_id } })}
+      className="flex-row items-center gap-3"
+    >
       <Avatar loadout={loadout} size={44} />
       <View className="flex-1 gap-0.5">
         <View className="flex-row items-center gap-2">
@@ -327,8 +338,14 @@ function Seller({ listing }: { listing: Listing }) {
             ? `Verified ${owner.campus.short_name ?? owner.campus.name} student`
             : "Open market member"}
         </Text>
+        {stats ? (
+          <Text className="text-[13px] text-ink">
+            {[tradesLabel(stats.trades), replyLabel(stats.reply_minutes)].filter(Boolean).join(" · ")}
+          </Text>
+        ) : null}
       </View>
-    </View>
+      {owner ? <ChevronRight size={18} color={colors.muted} /> : null}
+    </Pressable>
   );
 }
 

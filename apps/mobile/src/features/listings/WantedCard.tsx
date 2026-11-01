@@ -1,19 +1,47 @@
 import { router } from "expo-router";
 import { Megaphone } from "lucide-react-native";
+import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 
 import { MODES } from "@/features/catalog/catalog";
 import { formatAgo, formatPrice } from "@/lib/format";
+import { supabase } from "@/lib/supabase";
 import { GradeBadge } from "@/ui/GradeBadge";
 
 import type { FeedRow } from "./types";
 
 const WANTED = MODES.find((m) => m.id === "wanted")!;
 
-// A request card (spec 3.3, Wanted board): what is wanted, the budget, who asks and "I have this", which
-// opens the offer sheet.
-// The offer count comes with the public counts of APP-21.
-export function WantedCard({ row, mine = false }: { row: FeedRow; mine?: boolean }) {
+// Offers on the shown requests (APP-21), by listing id.
+export function useOfferCounts(rows: FeedRow[]) {
+  const [counts, setCounts] = useState(new Map<string, number>());
+  const ids = rows.map((r) => r.id).join(",");
+  useEffect(() => {
+    if (!ids) return;
+    void supabase
+      .rpc("offer_counts", { p_listing_ids: ids.split(",") })
+      .then(({ data }) =>
+        setCounts(
+          new Map(
+            ((data ?? []) as { listing_id: string; offers: number }[]).map((c) => [c.listing_id, c.offers]),
+          ),
+        ),
+      );
+  }, [ids]);
+  return counts;
+}
+
+// A request card (spec 3.3, Wanted board): what is wanted, the budget, the offers so far, who asks and
+// "I have this", which opens the offer sheet.
+export function WantedCard({
+  row,
+  offers = 0,
+  mine = false,
+}: {
+  row: FeedRow;
+  offers?: number;
+  mine?: boolean;
+}) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -32,7 +60,15 @@ export function WantedCard({ row, mine = false }: { row: FeedRow; mine?: boolean
           <Text className="text-base font-bold text-ink" numberOfLines={2}>
             {row.title}
           </Text>
-          <Text className="text-[15px] font-extrabold text-ink">Budget {formatPrice(row.price_cents)}</Text>
+          <Text className="text-[15px] font-extrabold text-ink">
+            Budget {formatPrice(row.price_cents)}
+            {offers ? (
+              <Text className="font-normal text-muted">
+                {" "}
+                · {offers} {offers === 1 ? "offer" : "offers"}
+              </Text>
+            ) : null}
+          </Text>
         </View>
       </View>
       <View className="flex-row items-center gap-2">

@@ -2311,7 +2311,7 @@ create table public.penalties (
 #### 5.3.8 Rank
 
 ```sql
-create table public.rank_stats (                -- own row and admins; other people's trade count and rating come with the public profile
+create table public.rank_stats (                -- own row and admins; others see the trade count through public_profile
   user_id           uuid primary key references public.profiles on delete cascade,
   counted_trades    integer not null,
   distinct_partners integer not null,
@@ -2795,6 +2795,8 @@ Sign-in uses Supabase Auth directly (`signInWithOtp` with `shouldCreateUser: tru
 
 Feed and search rows carry `id, kind, title, price_cents (the item's price, a sale's lowest available price, or a wanted budget), item_count, status, campus_only, thumb_path, blurhash, owner { display_name, tier, campus_slug (null for general users) }, zone, area_label, distance_miles (P1), bumped_at`.
 
+`public_profile(user_id)` returns what anyone signed in sees of an active account they have not blocked (or been blocked by): nickname, grade, school, member-since date, counted trades, the median minutes to a first reply over the last 90 days (from 3 chats), avatar and positive review tag counts; never the email or negative tags. `offer_counts(listing_ids)` counts the standing offers on wanted requests.
+
 Favorites use the `favorites` table directly (insert or delete own rows). Sellers read how many people saved their listings with `favorite_counts(listing_ids)` (security definer), which returns counts only for the caller's own listings (DSC-4).
 
 ### 6.5 Chat
@@ -2945,7 +2947,7 @@ Escrow comes after the MVP, and shipping trades come with it: every shipped trad
 | --- | --- | --- | --- | --- |
 | ACC-1, ACC-2 | 4.6.1 | profiles, private.accounts, private.identity_tombstones | Auth hook codes | Email and code |
 | ACC-3 | 4.6.1 | profiles, consents, user_settings | `complete_onboarding` | Profile setup, Rules and consent |
-| ACC-4 | 4.6.4 | profiles, rank_stats | table reads | Seller profile |
+| ACC-4 | 4.6.4 | profiles, rank_stats, reviews, chats | `public_profile` | Seller profile |
 | ACC-5 | 4.6.2 | Auth settings | none | none |
 | ACC-6 | 4.6.3 | private.accounts, private.email_codes | `send-secondary-code`, `verify-secondary-code` | Settings |
 | ACC-7 | 4.15 | penalties, enforcement_actions | `my_account_status` | Account status |

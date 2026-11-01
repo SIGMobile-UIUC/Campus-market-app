@@ -27,7 +27,7 @@ select set_eq(
         'report', 'block_user', 'unblock_user', 'admin_queue', 'admin_open_case_data', 'admin_resolve_report',
         'admin_set_hidden', 'admin_enforce', 'admin_set_config',
         'open_dispute', 'respond_dispute', 'withdraw_dispute', 'admin_resolve_dispute', 'set_consent',
-        'public_profile', 'offer_counts', 'change_display_name'],
+        'public_profile', 'offer_counts', 'change_display_name', 'log_events'],
   'security definer functions in public match the allowlist'
 );
 

@@ -7,7 +7,7 @@ import { useAccount } from "@/features/account/account";
 import { MODES } from "@/features/catalog/catalog";
 import { useCategories } from "@/features/catalog/categories";
 import { MarketChips, useScope } from "@/features/listings/Toolbar";
-import { WantedCard } from "@/features/listings/WantedCard";
+import { useOfferCounts, WantedCard } from "@/features/listings/WantedCard";
 import { useListings } from "@/features/listings/useListings";
 import { Chip } from "@/ui/Chip";
 import { Header } from "@/ui/Header";
@@ -22,6 +22,7 @@ export default function WantedBoard() {
   const { categories } = useCategories();
   const [category, setCategory] = useState<string | null>(null);
   const results = useListings({ scope, filters: { mode: "wanted", category: category ?? undefined } });
+  const offers = useOfferCounts(results.rows);
 
   return (
     <>
@@ -32,7 +33,11 @@ export default function WantedBoard() {
         keyExtractor={(row) => row.id}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32, gap: 12 }}
         renderItem={({ item }) => (
-          <WantedCard row={item} mine={item.owner.display_name === account?.display_name} />
+          <WantedCard
+            row={item}
+            offers={offers.get(item.id)}
+            mine={item.owner.display_name === account?.display_name}
+          />
         )}
         onEndReached={() => void results.loadMore()}
         onEndReachedThreshold={0.6}

@@ -27,7 +27,8 @@ select is(public.log_events(jsonb_build_array(
 select is(public.log_events(jsonb_build_array(tests.event('sell_start', '{"kind": "item"}', tests.id('e1')))) ->> 'accepted', '0',
   'a retried event is stored once');
 reset role;
-select is((select array_agg(e.props ->> 'term' order by e.props ->> 'term' nulls last) from private.events e where e.name = 'search'),
+select is((select array_agg(e.props ->> 'term' order by e.props ->> 'term' nulls last) from private.events e
+           where e.name = 'search' and e.analytics_id = (select analytics_id from private.accounts where user_id = tests.user_id('alpha1'))),
   array['mini fridge', null], 'search terms are cleaned and identifying ones dropped');
 select is((select analytics_id from private.events where event_id = tests.id('e1')),
           (select analytics_id from private.accounts where user_id = tests.user_id('alpha1')), 'events carry the analytics id');

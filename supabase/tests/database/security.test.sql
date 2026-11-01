@@ -27,14 +27,15 @@ select set_eq(
         'report', 'block_user', 'unblock_user', 'admin_queue', 'admin_open_case_data', 'admin_resolve_report',
         'admin_set_hidden', 'admin_enforce', 'admin_set_config',
         'open_dispute', 'respond_dispute', 'withdraw_dispute', 'admin_resolve_dispute', 'set_consent',
-        'public_profile', 'offer_counts', 'change_display_name', 'log_events'],
+        'public_profile', 'offer_counts', 'change_display_name', 'log_events',
+        'delete_account', 'media_purge_due', 'media_purge_finish'],
   'security definer functions in public match the allowlist'
 );
 
 select is_empty(
   $$ select p.proname from pg_proc p
      where p.pronamespace = 'public'::regnamespace and p.prosecdef
-       and p.prosrc !~ 'private\.require_(user|admin)\(' $$,
+       and p.prosrc !~ 'private\.require_(user|admin|service)\(' $$,
   'every security definer function in public calls a guard'
 );
 

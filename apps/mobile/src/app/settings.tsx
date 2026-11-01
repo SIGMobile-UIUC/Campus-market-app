@@ -18,8 +18,7 @@ type Consent = { analytics: boolean; personalized_ads: boolean };
 type Blocked = { blocked_id: string; blocked: { display_name: string | null } | null };
 
 // Settings (APP-19, spec 3.3): notifications, privacy and consent, blocked users, rules, contact, data
-// credits and the account. Per-type notification switches are P1 (ACC-9); deleting the account
-// arrives with its Edge Function (FN-2).
+// credits and the account. Per-type notification switches are P1 (ACC-9).
 export default function Settings() {
   const { account } = useAccount();
   const [consent, setConsent] = useState<Consent | null>(null);
@@ -125,6 +124,7 @@ export default function Settings() {
         </Text>
         <View className="items-start">
           <TextLink label="Change nickname" onPress={() => router.push("/nickname")} />
+          <TextLink label="Delete account" onPress={() => router.push("/delete-account")} />
         </View>
         <Button
           variant="secondary"

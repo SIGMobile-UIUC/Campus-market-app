@@ -3,6 +3,10 @@
 
 -- Tombstone HMAC key. Staging and production set their own random key in Vault.
 select vault.create_secret('local-development-only', 'email_hmac_key');
+-- Where daily-maintenance reaches media-purge from inside the database container, and the shared secret
+-- that config.toml gives the local function.
+select vault.create_secret('http://kong:8000/functions/v1/media-purge', 'media_purge_url');
+select vault.create_secret('local-development-only', 'media_purge_secret');
 
 insert into public.campuses (slug, name, short_name, status, timezone, lat, lng, primary_color, accent_color) values
   ('illinois', 'University of Illinois Urbana-Champaign', 'UIUC',     'live',     'America/Chicago',              40.1020, -88.2272, '#13294B', '#FF5F05'),

@@ -2885,7 +2885,7 @@ Every admin function writes `private.admin_log` and checks the caller's role and
 | `media-purge` | Daily maintenance job through pg_net (shared secret) | none; reads due listings, disputes and chats itself | `{ listings, evidence, chats, chat_photos, objects_deleted }` |
 | `send-secondary-code` | App (JWT) | `{ email }` | 204; 429 after 3 per hour |
 | `verify-secondary-code` | App (JWT) | `{ code }` | 204; 400 on a wrong or expired code |
-| `delete-account` | App (JWT) | `{ code }` (a fresh school-email code) | 204; 409 if the user has an open dispute as respondent |
+| `delete-account` | App (JWT) | `{ code }` (a fresh school-email code) | 204; 400 on a wrong or expired code; 409 if the user has an open dispute as respondent |
 
 Push sending and receipts run in the database (section 4.16); devices register with `register_push_token(token, platform)` and `unregister_push_token(token)` (section 6.3). Push payloads never include message text when the recipient has `lock_screen_preview` off.
 

@@ -6,6 +6,7 @@ import { ActivityIndicator, Pressable, Text, View } from "react-native";
 
 import { proposeTrade } from "@/features/trades/api";
 import { loadSpots, meetupPayload, MeetupFields, NO_MEETUP } from "@/features/trades/MeetupFields";
+import { track } from "@/lib/analytics";
 import { formatPrice, parsePrice } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/ui/Button";
@@ -16,7 +17,7 @@ import { useTheme } from "@/ui/theme";
 
 type Item = { id: string; position: number; name: string; price_cents: number; status: string };
 type Context = {
-  listing: { kind: "item" | "bundle"; campus_id: string | null; items: Item[] };
+  listing: { id: string; kind: "item" | "bundle"; campus_id: string | null; items: Item[] };
   spots: { id: string; name: string }[];
 };
 
@@ -24,7 +25,7 @@ async function load(chatId: string): Promise<Context | null> {
   const { data } = await supabase
     .from("chats")
     .select(
-      "listing:listings!chats_listing_id_fkey(kind, campus_id, items(id, position, name, price_cents, status))",
+      "listing:listings!chats_listing_id_fkey(id, kind, campus_id, items(id, position, name, price_cents, status))",
     )
     .eq("id", chatId)
     .maybeSingle();
@@ -50,7 +51,10 @@ export default function Propose() {
   const [requestId] = useState(() => randomUUID());
 
   useEffect(() => {
-    void load(chatId).then(setContext);
+    void load(chatId).then((loaded) => {
+      setContext(loaded);
+      if (loaded) track("proposal_open", { listing_id: loaded.listing.id });
+    });
   }, [chatId]);
 
   if (context === undefined) {

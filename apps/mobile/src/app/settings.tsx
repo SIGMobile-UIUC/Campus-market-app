@@ -5,6 +5,7 @@ import { Alert, Linking, ScrollView, Text, View } from "react-native";
 import { useAccount } from "@/features/account/account";
 import { ContactLink } from "@/features/moderation/moderation";
 import { errorMessage } from "@/lib/errors";
+import { setAnalytics } from "@/lib/analytics";
 import { disablePush } from "@/lib/push";
 import { supabase } from "@/lib/supabase";
 import { TERMS_URL, TERMS_VERSION } from "@/lib/terms";
@@ -54,7 +55,9 @@ export default function Settings() {
     if (error) {
       setConsent(previous);
       Alert.alert("Couldn't save", errorMessage(error));
+      return;
     }
+    setAnalytics(next.analytics);
   };
 
   const unblock = async (userId: string) => {

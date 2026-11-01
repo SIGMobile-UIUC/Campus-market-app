@@ -1,7 +1,9 @@
 import { Image } from "expo-image";
 import { ShieldCheck, TriangleAlert } from "lucide-react-native";
+import { useEffect } from "react";
 import { Pressable, Text, View } from "react-native";
 
+import { track } from "@/lib/analytics";
 import { formatTime } from "@/lib/format";
 import { Photo } from "@/ui/Photo";
 import { useTheme } from "@/ui/theme";
@@ -83,7 +85,7 @@ export function MessageBubble({
           </View>
         ) : null}
       </Pressable>
-      {warning ? <Warning text={warning} /> : null}
+      {warning ? <Warning {...warning} /> : null}
       {time || status ? (
         <Text className={`px-1 text-[11px] ${pending?.failed ? "text-danger" : "text-muted"}`}>
           {[status, time].filter(Boolean).join(" · ")}
@@ -93,15 +95,18 @@ export function MessageBubble({
   );
 }
 
-function Warning({ text }: { text: string }) {
+function Warning({ id, warning }: { id: string; warning: string }) {
   const { colors } = useTheme();
+  useEffect(() => {
+    track("safety_warning_shown", { pattern: id });
+  }, [id]);
   return (
     <View
       accessibilityRole="alert"
       className="flex-row items-center gap-2 rounded-xl border border-warning px-3 py-2"
     >
       <TriangleAlert size={16} color={colors.warning} />
-      <Text className="flex-1 text-[13px] text-ink">{text}</Text>
+      <Text className="flex-1 text-[13px] text-ink">{warning}</Text>
     </View>
   );
 }

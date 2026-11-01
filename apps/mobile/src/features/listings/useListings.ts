@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { track } from "@/lib/analytics";
 import { supabase } from "@/lib/supabase";
 
 import type { FeedRow, Filters, Sort } from "./types";
@@ -29,6 +30,28 @@ async function fetchPage(query: ListingQuery, cursor: unknown): Promise<Page> {
 
 type State = { key: string; rows: FeedRow[]; cursor: unknown; error: boolean };
 
+// The list a query shows, for view_item_list and select_item (spec 4.17.5).
+const listName = (query: ListingQuery) =>
+  query.q ? "search" : (query.filters?.mode ?? (query.filters?.category ? "category" : "feed"));
+
+// One impression event per loaded page, and the search itself with its first page.
+function trackPage(query: ListingQuery, rows: FeedRow[], offset: number) {
+  const props = {
+    category: query.filters?.category ?? null,
+    filters: query.filters ?? {},
+    sort: query.sort ?? "newest",
+  };
+  if (query.q && offset === 0) {
+    track("search", { ...props, term: query.q, scope: query.scope, result_count: rows.length });
+  }
+  track("view_item_list", {
+    ...props,
+    list: listName(query),
+    page: Math.floor(offset / (query.limit ?? 20)) + 1,
+    items: rows.slice(0, 40).map((row, i) => ({ listing_id: row.id, index: offset + i })),
+  });
+}
+
 // One page at a time with the keyset cursor (spec 4.8). A bumped listing can show up again on a later
 // page, so rows whose id is already shown are dropped. Results are kept per query, so switching back
 // and forth never mixes two queries' rows.
@@ -40,8 +63,13 @@ export function useListings(query: ListingQuery) {
 
   useEffect(() => {
     let alive = true;
-    fetchPage(JSON.parse(key) as ListingQuery, null).then(
-      (page) => alive && setState({ key, rows: page.rows, cursor: page.next_cursor, error: false }),
+    const query = JSON.parse(key) as ListingQuery;
+    fetchPage(query, null).then(
+      (page) => {
+        if (!alive) return;
+        setState({ key, rows: page.rows, cursor: page.next_cursor, error: false });
+        trackPage(query, page.rows, 0);
+      },
       () => alive && setState({ key, rows: [], cursor: null, error: true }),
     );
     return () => {
@@ -56,6 +84,7 @@ export function useListings(query: ListingQuery) {
     setBusy(true);
     try {
       const page = await fetchPage(JSON.parse(key) as ListingQuery, current.cursor);
+      trackPage(JSON.parse(key) as ListingQuery, page.rows, current.rows.length);
       setState((s) => {
         if (!s || s.key !== key) return s;
         const seen = new Set(s.rows.map((row) => row.id));
@@ -68,7 +97,7 @@ export function useListings(query: ListingQuery) {
     } finally {
       setBusy(false);
     }
-  }, [busy, current?.cursor, key]);
+  }, [busy, current?.cursor, current?.rows.length, key]);
 
   // Pull to refresh: the old rows stay on screen until the first page comes back.
   const refresh = useCallback(async () => {
@@ -84,6 +113,7 @@ export function useListings(query: ListingQuery) {
   }, [key]);
 
   return {
+    list: listName(JSON.parse(key) as ListingQuery),
     rows: current?.rows ?? [],
     loading: !current,
     error: current?.error ?? false,

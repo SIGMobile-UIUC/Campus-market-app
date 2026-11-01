@@ -4,6 +4,7 @@ import { ActivityIndicator, Alert, Text, View } from "react-native";
 
 import { conditionLabel } from "@/features/listings/types";
 import { ConditionChips, FieldError, PostFooter, Section } from "@/features/sell/form";
+import { track } from "@/lib/analytics";
 import { errorField, errorMessage } from "@/lib/errors";
 import { formatPrice, parsePrice } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
@@ -144,6 +145,15 @@ export default function EditListing() {
     });
     setStatus(null);
     if (rpcError) return setError({ text: errorMessage(rpcError), field: errorField(rpcError) });
+    for (const change of itemChanges) {
+      const before = items.find((i) => i.position === change.position)?.price_cents;
+      if (before && change.price_cents !== before) {
+        track("price_change", {
+          listing_id: listing.id,
+          change_pct: Math.round(((change.price_cents - before) / before) * 100),
+        });
+      }
+    }
     router.back();
   };
 

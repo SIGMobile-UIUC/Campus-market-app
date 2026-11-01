@@ -15,11 +15,13 @@ export type MeStats = {
   rank: Rank | null;
   timezone: string;
   lastCheckin: { local_date: string; streak: number } | null;
+  // Any admin role, for the Moderation entry.
+  admin: boolean;
 };
 
 // The Me tab's numbers: wallet, grade inputs, and the latest check-in with the time zone it counts in.
 export async function fetchMeStats(userId: string): Promise<MeStats | null> {
-  const [wallet, rank, profile, checkin] = await Promise.all([
+  const [wallet, rank, profile, checkin, roles] = await Promise.all([
     supabase.rpc("get_wallet"),
     supabase
       .from("rank_stats")
@@ -32,13 +34,15 @@ export async function fetchMeStats(userId: string): Promise<MeStats | null> {
       .order("local_date", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    supabase.from("user_roles").select("role").limit(1),
   ]);
-  if (wallet.error || rank.error || profile.error || checkin.error) return null;
+  if (wallet.error || rank.error || profile.error || checkin.error || roles.error) return null;
   return {
     wallet: wallet.data as Wallet,
     rank: rank.data,
     timezone: profile.data.timezone,
     lastCheckin: checkin.data,
+    admin: roles.data.length > 0,
   };
 }
 

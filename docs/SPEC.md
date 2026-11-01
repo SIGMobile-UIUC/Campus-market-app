@@ -978,7 +978,7 @@ Grade-locked items show a lock with the grade badge; campus-only items show the 
 - Open-market cards, chats and profiles show whether the other person is a verified student or a general user.
 - Warning banner on scam-pattern messages.
 - "I'm here" explains in one line that location is taken once, only as evidence for this meetup.
-- Report and Block in the "..." menu of listings, chats and profiles, with what the other person will and will not see.
+- Report and Block in the "..." menu of listings, chats and profiles, with what the other person will and will not see. A long press on someone's message reports that message. A message an admin hid shows as "This message was removed".
 
 ### 3.10 Accessibility
 

@@ -1,7 +1,20 @@
+import { Ellipsis } from "lucide-react-native";
 import { Modal, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { useTheme } from "./theme";
+
 export type MenuOption = { label: string; onPress: () => void; destructive?: boolean };
+
+// The "..." button that opens a screen's Menu.
+export function MenuButton({ label, onPress }: { label: string; onPress: () => void }) {
+  const { colors } = useTheme();
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} hitSlop={12}>
+      <Ellipsis size={24} color={colors.ink} />
+    </Pressable>
+  );
+}
 
 // A bottom sheet of actions, closed by tapping outside or Cancel.
 export function Menu({

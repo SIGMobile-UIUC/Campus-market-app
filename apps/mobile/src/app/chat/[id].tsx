@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { Ellipsis, ImagePlus, SendHorizontal } from "lucide-react-native";
+import { ImagePlus, SendHorizontal } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -18,6 +18,7 @@ import { leaveChat, setMuted, type Message, type Room } from "@/features/chat/ap
 import { useChats } from "@/features/chat/ChatProvider";
 import { MessageBubble, SafetyTips } from "@/features/chat/MessageBubble";
 import { useChatRoom, type Pending } from "@/features/chat/useChatRoom";
+import { confirmBlock, ReportMenu, type ReportTarget } from "@/features/moderation/moderation";
 import { TradeCard } from "@/features/trades/TradeCard";
 import { formatPrice } from "@/lib/format";
 import { pickPhotos } from "@/lib/media";
@@ -25,7 +26,7 @@ import { enablePush } from "@/lib/push";
 import { Chip } from "@/ui/Chip";
 import { GradeBadge } from "@/ui/GradeBadge";
 import { Header } from "@/ui/Header";
-import { Menu } from "@/ui/Menu";
+import { Menu, MenuButton } from "@/ui/Menu";
 import { Photo } from "@/ui/Photo";
 import { useKeyboardHeight } from "@/ui/Screen";
 import { TextLink } from "@/ui/TextLink";
@@ -37,7 +38,7 @@ const QUICK_REPLIES = ["Is this still available?", "When can you meet?"];
 type Entry = { key: string; message?: Message; pending?: Pending };
 
 // Chat room (spec 3.3): listing header with Propose, timeline with trade cards, quick replies, photos,
-// safety tips, leave and mute.
+// safety tips, leave and mute, report and block (spec 3.9).
 export default function ChatRoom() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session } = useAccount();
@@ -59,6 +60,7 @@ export default function ChatRoom() {
   const insets = useSafeAreaInsets();
   const keyboard = useKeyboardHeight();
   const [menu, setMenu] = useState<"chat" | "photo" | null>(null);
+  const [reporting, setReporting] = useState<ReportTarget | null>(null);
   // The first chat is where the notification prompt appears (spec 4.16).
   useEffect(() => {
     void enablePush(true);
@@ -120,7 +122,7 @@ export default function ChatRoom() {
             {partner ? <GradeBadge tier={partner.tier} /> : null}
           </View>
         )}
-        right={() => <MenuButton onPress={() => setMenu("chat")} />}
+        right={() => <MenuButton label="Chat options" onPress={() => setMenu("chat")} />}
       />
       <ListingStrip room={room} canPropose={!room.closed_at} />
       <FlatList
@@ -162,6 +164,9 @@ export default function ChatRoom() {
               showTime={showTime}
               read={!!m && m.seq === readSeq}
               onRetry={(p) => void retry(p)}
+              onReport={(msg) =>
+                setReporting({ type: "message", ref: `${id}:${msg.seq}`, label: "this message" })
+              }
             />
           );
         }}
@@ -187,6 +192,19 @@ export default function ChatRoom() {
             label: muted ? "Turn on notifications" : "Mute notifications",
             onPress: () => void setMuted(id, !muted).then(() => reloadRoom()),
           },
+          ...(partner
+            ? [
+                {
+                  label: `Report ${partnerName}`,
+                  onPress: () => setReporting({ type: "user", ref: partner.id, label: partnerName }),
+                },
+                {
+                  label: `Block ${partnerName}`,
+                  destructive: true,
+                  onPress: () => confirmBlock(partner.id, partnerName, () => router.back()),
+                },
+              ]
+            : []),
           ...(room.closed_at && room.chat_reads.find((r) => r.user_id === myId)?.left_at
             ? []
             : [
@@ -203,6 +221,7 @@ export default function ChatRoom() {
               ]),
         ]}
       />
+      <ReportMenu target={reporting} onClose={() => setReporting(null)} />
       <Menu
         visible={menu === "photo"}
         onClose={() => setMenu(null)}
@@ -212,15 +231,6 @@ export default function ChatRoom() {
         ]}
       />
     </View>
-  );
-}
-
-function MenuButton({ onPress }: { onPress: () => void }) {
-  const { colors } = useTheme();
-  return (
-    <Pressable accessibilityRole="button" accessibilityLabel="Chat options" onPress={onPress} hitSlop={12}>
-      <Ellipsis size={24} color={colors.ink} />
-    </Pressable>
   );
 }
 

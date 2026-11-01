@@ -36,8 +36,9 @@ jobs:
       - run: supabase db lint --level warning --fail-on error
       - run: supabase test db
 
-  # Applies new migrations to staging once main's database checks pass. The secrets live in the
-  # staging environment, which only main may use; link finds the IPv4 pooler the runner can reach.
+  # Applies new migrations and deploys the Edge Functions to staging once main's database checks pass.
+  # The secrets live in the staging environment, which only main may use; link finds the IPv4 pooler
+  # the runner can reach.
   staging:
     if: github.event_name == 'push'
     needs: db
@@ -55,3 +56,4 @@ jobs:
           version: 2.120.0
       - run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
       - run: supabase db push --yes
+      - run: supabase functions deploy

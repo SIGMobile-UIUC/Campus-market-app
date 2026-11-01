@@ -130,10 +130,11 @@ Done when: two phones complete a trade end to end on staging, with push notifica
 | DB-14 | No-show disputes: open, respond, evidence, admin decision; evidence bucket | Backend | Done; GPS check-ins and the automatic rule are P1, `add_evidence` comes if reviewers need more than the claim and response, evidence purge with FN-2 |
 | APP-12 | Me tab: grade card with progress, wallet and history, daily check-in, shop and avatar editor (SVG layers); the points toast after a trade or review | App | Done; the check-in dot on the Me tab icon comes later, the pet is P1 |
 | APP-21 | Public profile (ACC-4): nickname, school and grade badges, review tag counts, active listings, member since, reply time; the seller's trade count and reply time on the listing page; offer counts on request cards | Backend | |
+| APP-22 | Nickname change (PTS-3): `change_display_name`, free within 7 days of sign-up, then 300 points and a 30-day cooldown; the entry in Settings | Backend | |
 | APP-13 | Report and block menus; account status page; admin queue and case view for admins; removed messages shown as removed in the chat | App | Done; profile menus come with the public profile (APP-21), the contact address in Settings with APP-19 |
 | APP-14 | Dispute flow with in-app camera evidence | App | Done with the system camera (no library); a camera screen of our own (expo-camera) needs a new development build |
 | APP-19 | Settings: notifications, privacy and consent changes, blocked users, community rules, contact address, data credits (GeoNames, CC BY 4.0), account (entry to account deletion) | App | Done; notifications open the phone's settings (per-type switches and lock-screen previews are P1, ACC-9); the Delete account entry comes with FN-2 |
-| TST-3 | Race test for the daily points cap; pgTAP for trust grades and points rules | Backend | |
+| TST-3 | Race test for the daily points cap; pgTAP for trust grades and points rules | Backend | Done in races.test.sql (#7), points.test.sql and reputation.test.sql |
 
 Done when: after a completed trade both users see their new points and, once the job runs, their grade; a report from three users hides a listing.
 

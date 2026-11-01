@@ -2,13 +2,8 @@ import { useEffect, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 
 import { useAccount } from "@/features/account/account";
-import {
-  ContactLink,
-  fetchPenalties,
-  PenaltyList,
-  shortDate,
-  type Penalty,
-} from "@/features/moderation/moderation";
+import { ContactLink, fetchPenalties, PenaltyList, type Penalty } from "@/features/moderation/moderation";
+import { formatDate } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
 import { Header } from "@/ui/Header";
 
@@ -82,8 +77,8 @@ export default function AccountStatus() {
                 {KINDS[a.kind]} · {REASONS[a.reason_code] ?? a.reason_code}
               </Text>
               <Text className="text-[13px] text-muted">
-                {shortDate(a.created_at)}
-                {a.ends_at ? ` – ${shortDate(a.ends_at)}` : ""} · Rules section {a.policy_ref}
+                {formatDate(a.created_at)}
+                {a.ends_at ? ` – ${formatDate(a.ends_at)}` : ""} · Rules section {a.policy_ref}
               </Text>
             </View>
           ))

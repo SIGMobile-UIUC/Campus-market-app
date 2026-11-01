@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import { Alert, Linking, Text, View } from "react-native";
 
 import { errorMessage } from "@/lib/errors";
+import { formatDate } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
 import { Menu } from "@/ui/Menu";
 import { TextLink } from "@/ui/TextLink";
 import { toast } from "@/ui/Toast";
 
 // The published contact address (SAF-8, Apple 1.2) until appeals ship.
-export const CONTACT_EMAIL = "campusmarketsupports@gmail.com";
+const CONTACT_EMAIL = "campusmarketsupports@gmail.com";
 
 export function ContactLink() {
   return (
@@ -102,9 +103,6 @@ const PENALTY_REASONS: Record<string, string> = {
   bad_faith: "Claim made in bad faith",
 };
 
-export const shortDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-
 // The caller's penalties that still count (REP-3), soonest to expire first.
 export async function fetchPenalties(): Promise<Penalty[]> {
   const { data } = await supabase
@@ -124,7 +122,7 @@ export function PenaltyList({ penalties }: { penalties: Penalty[] }) {
         <View key={p.id} className="flex-row justify-between border-b border-line py-2">
           <Text className="text-[15px] text-ink">{PENALTY_REASONS[p.reason] ?? p.reason}</Text>
           <Text className="text-[13px] text-muted">
-            {p.points} pts until {shortDate(p.expires_at)}
+            {p.points} pts until {formatDate(p.expires_at)}
           </Text>
         </View>
       ))}

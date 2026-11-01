@@ -131,7 +131,7 @@ export default function Home() {
 // A horizontal row of up to six listings with "See all"; hidden when empty.
 // The newest requests as cards, with "See all" opening the Wanted board; hidden when empty.
 function WantedModule({ scope }: { scope: "campus" | "open" }) {
-  const { account } = useAccount();
+  const { session } = useAccount();
   const { rows } = useListings({ scope, filters: { mode: "wanted" }, limit: 6 });
   const offers = useOfferCounts(rows);
   if (!rows.length) return null;
@@ -152,11 +152,7 @@ function WantedModule({ scope }: { scope: "campus" | "open" }) {
       >
         {rows.map((row) => (
           <View key={row.id} style={{ width: 280 }}>
-            <WantedCard
-              row={row}
-              offers={offers.get(row.id)}
-              mine={row.owner.display_name === account?.display_name}
-            />
+            <WantedCard row={row} offers={offers.get(row.id)} mine={row.owner.id === session?.user.id} />
           </View>
         ))}
       </ScrollView>

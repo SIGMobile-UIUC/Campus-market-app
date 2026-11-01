@@ -11,7 +11,7 @@ export type FeedRow = {
   campus_only: boolean;
   thumb_path: string | null;
   blurhash: string | null;
-  owner: { display_name: string; tier: string; campus_slug: string | null };
+  owner: { id: string; display_name: string; tier: string; campus_slug: string | null };
   zone: string | null;
   area_label: string;
   bumped_at: string;

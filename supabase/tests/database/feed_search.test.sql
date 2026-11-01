@@ -97,8 +97,9 @@ select is(tests.found('standing desk', 'open'), '{}'::uuid[], 'search stays insi
 -- Row shape and owners.
 select tests.login_as(tests.user_id('alpha2'));
 select is(
-  (select r - 'id' - 'bumped_at' - 'thumb_path' - 'blurhash'
-   from jsonb_array_elements(public.feed('campus') -> 'rows') r where (r ->> 'id')::uuid = tests.id('sale')),
+  (select (r - 'id' - 'bumped_at' - 'thumb_path' - 'blurhash') || jsonb_build_object('owner', (r -> 'owner') - 'id')
+   from jsonb_array_elements(public.feed('campus') -> 'rows') r
+   where (r ->> 'id')::uuid = tests.id('sale') and (r #>> '{owner,id}')::uuid = tests.user_id('alpha1')),
   '{"kind": "bundle", "title": "Move-out sale", "price_cents": 500, "item_count": 2, "status": "active", "campus_only": true,
     "owner": {"display_name": "alpha1", "tier": "b", "campus_slug": "alpha"}, "zone": null, "area_label": "Alpha University"}'::jsonb,
   'a row carries price, count, owner, area and market'

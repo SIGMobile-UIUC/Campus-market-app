@@ -90,16 +90,23 @@ export async function uploadPhoto(userId: string, photo: PreparedPhoto): Promise
   return { path, thumb_path, blurhash: photo.blurhash, bytes: photo.detail.bytes + photo.thumb.bytes };
 }
 
-// A chat photo is one detail-size image under {chat_id}/{user_id}/, the folder the chat-images policy
-// requires (spec 4.9); bubbles show it scaled down. Returns the object path for send_message.
-export async function uploadChatPhoto(chatId: string, userId: string, uri: string): Promise<string> {
+// One detail-size image in a folder the bucket's policy checks. Returns the object path.
+async function uploadToFolder(bucket: Bucket, folder: string, uri: string, qualities = QUALITIES) {
   const original = await ImageManipulator.manipulate(uri).renderAsync();
   const image = await resized(original, DETAIL.edge);
-  const detail = await encodeToTarget((q) => save(image, q), DETAIL.maxBytes);
-  const path = `${chatId}/${userId}/${randomUUID()}.${detail.format === "webp" ? "webp" : "jpg"}`;
-  await put("chat-images", path, detail);
+  const detail = await encodeToTarget((q) => save(image, q), DETAIL.maxBytes, qualities);
+  const path = `${folder}/${randomUUID()}.${detail.format === "webp" ? "webp" : "jpg"}`;
+  await put(bucket, path, detail);
   return path;
 }
+
+// A chat photo goes under {chat_id}/{user_id}/ (spec 4.9); bubbles show it scaled down.
+export const uploadChatPhoto = (chatId: string, userId: string, uri: string) =>
+  uploadToFolder("chat-images", `${chatId}/${userId}`, uri);
+
+// Dispute evidence goes under {trade_id}/{user_id}/ at quality 0.85 first, so details stay legible (4.7.1).
+export const uploadEvidencePhoto = (tradeId: string, userId: string, uri: string) =>
+  uploadToFolder("dispute-evidence", `${tradeId}/${userId}`, uri, [0.85, 0.75, 0.65]);
 
 // Returns local image URIs, or [] when the user cancels or denies the camera.
 export async function pickPhotos(source: "library" | "camera", limit: number): Promise<string[]> {

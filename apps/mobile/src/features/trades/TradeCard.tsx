@@ -18,6 +18,7 @@ import {
   tradeAction,
   type Trade,
 } from "./api";
+import { canClaimNow } from "./disputes";
 
 const TITLE: Record<Trade["status"], string> = {
   proposed: "Trade proposed",
@@ -167,7 +168,15 @@ export function TradeActions({
             )}
           </>
         )}
-        <TextLink label="Cancel trade" onPress={() => setCancelling(true)} />
+        <View className="flex-row justify-center">
+          <TextLink label="Cancel trade" onPress={() => setCancelling(true)} />
+          {canClaimNow(trade) ? (
+            <TextLink
+              label="Report a problem"
+              onPress={() => router.push({ pathname: "/dispute/[tradeId]", params: { tradeId: trade.id } })}
+            />
+          ) : null}
+        </View>
         <Menu
           visible={cancelling}
           title="Why are you cancelling?"
@@ -192,9 +201,18 @@ export function TradeActions({
       </View>
     ) : null;
   }
-  if (trade.status === "disputed") {
+  // A trade fails only through an upheld no-show (spec 5.2).
+  if (trade.status === "disputed" || trade.status === "failed") {
     return (
-      <Text className="pt-1 text-[13px] text-muted">A problem was reported. An admin will review it.</Text>
+      <View className="flex-row items-center justify-between pt-1">
+        <Text className="flex-1 text-[13px] text-muted">
+          {trade.status === "disputed" ? "A no-show was reported." : "An admin upheld a no-show."}
+        </Text>
+        <TextLink
+          label="View dispute"
+          onPress={() => router.push({ pathname: "/dispute/[tradeId]", params: { tradeId: trade.id } })}
+        />
+      </View>
     );
   }
   if (trade.status === "cancelled" && trade.cancel_reason) {

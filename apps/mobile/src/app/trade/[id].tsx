@@ -11,7 +11,7 @@ import { Header } from "@/ui/Header";
 import { TextLink } from "@/ui/TextLink";
 
 // Trade details (spec 3.3): status timeline, items and price, meetup time and place, and the actions
-// for the current state. "I'm here" (P1) and Report a problem come with disputes (DB-14).
+// for the current state, including Report a problem (APP-14). "I'm here" is P1.
 export default function TradeDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session } = useAccount();

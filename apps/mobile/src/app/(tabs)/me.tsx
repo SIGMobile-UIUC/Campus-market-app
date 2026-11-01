@@ -3,10 +3,13 @@ import {
   CalendarCheck,
   ChevronRight,
   Ellipsis,
+  Gavel,
   Handshake,
   Heart,
+  ShieldCheck,
   ShoppingBag,
   WalletCards,
+  type LucideIcon,
 } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from "react-native";
@@ -37,7 +40,7 @@ const TABS: [Tab, string, (l: MyListing) => boolean][] = [
 ];
 
 // Me (spec 3.3): the grade card, wallet, shop and daily check-in (APP-12), then My listings (APP-20).
-// Sign-out moves into Settings (APP-19).
+// Account status and, for admins, the moderation queue (APP-13). Sign-out moves into Settings (APP-19).
 export default function Me() {
   const { campus, colors } = useTheme();
   const { account, session } = useAccount();
@@ -65,6 +68,17 @@ export default function Me() {
       <Text accessibilityRole="header" className="px-5 pb-4 text-2xl font-extrabold text-ink">
         Me
       </Text>
+      {account && account.status !== "active" ? (
+        <Pressable
+          accessibilityRole="link"
+          onPress={() => router.push("/account-status")}
+          className="mx-5 mb-3 rounded-2xl border border-danger p-4"
+        >
+          <Text className="text-[15px] font-bold text-danger">
+            Your account is {account.status}. See why and what you can do.
+          </Text>
+        </Pressable>
+      ) : null}
       <View className="mx-5 flex-row items-center gap-4 rounded-2xl bg-primary p-5">
         <Avatar loadout={account?.avatar ?? {}} size={64} />
         <View className="flex-1 gap-1">
@@ -135,24 +149,14 @@ export default function Me() {
         ))}
       </View>
 
-      <Pressable
-        accessibilityRole="link"
-        onPress={() => router.push("/trades")}
-        className="mx-5 mt-6 h-14 flex-row items-center gap-3 rounded-2xl bg-surface px-4"
-      >
-        <Handshake size={20} color={colors.ink} />
-        <Text className="flex-1 text-base text-ink">My trades</Text>
-        <ChevronRight size={18} color={colors.muted} />
-      </Pressable>
-      <Pressable
-        accessibilityRole="link"
-        onPress={() => router.push("/favorites")}
-        className="mx-5 mt-3 h-14 flex-row items-center gap-3 rounded-2xl bg-surface px-4"
-      >
-        <Heart size={20} color={colors.ink} />
-        <Text className="flex-1 text-base text-ink">Favorites</Text>
-        <ChevronRight size={18} color={colors.muted} />
-      </Pressable>
+      <View className="mx-5 mt-6 gap-3">
+        <LinkRow Icon={Handshake} label="My trades" onPress={() => router.push("/trades")} />
+        <LinkRow Icon={Heart} label="Favorites" onPress={() => router.push("/favorites")} />
+        <LinkRow Icon={ShieldCheck} label="Account status" onPress={() => router.push("/account-status")} />
+        {stats?.admin ? (
+          <LinkRow Icon={Gavel} label="Moderation" onPress={() => router.push("/admin")} />
+        ) : null}
+      </View>
       <View className="mx-5 mt-4">
         <Button
           variant="secondary"
@@ -168,6 +172,21 @@ export default function Me() {
         onClose={() => setMenuFor(null)}
       />
     </ScrollView>
+  );
+}
+
+function LinkRow({ Icon, label, onPress }: { Icon: LucideIcon; label: string; onPress: () => void }) {
+  const { colors } = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="link"
+      onPress={onPress}
+      className="h-14 flex-row items-center gap-3 rounded-2xl bg-surface px-4"
+    >
+      <Icon size={20} color={colors.ink} />
+      <Text className="flex-1 text-base text-ink">{label}</Text>
+      <ChevronRight size={18} color={colors.muted} />
+    </Pressable>
   );
 }
 

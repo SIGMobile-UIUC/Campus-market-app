@@ -21,6 +21,7 @@ export function MessageBubble({
   showTime,
   read,
   onRetry,
+  onReport,
 }: {
   message?: Message;
   pending?: Pending;
@@ -29,6 +30,7 @@ export function MessageBubble({
   showTime: boolean;
   read: boolean;
   onRetry: (pending: Pending) => void;
+  onReport?: (message: Message) => void;
 }) {
   if (message?.kind === "system") {
     return (
@@ -38,6 +40,16 @@ export function MessageBubble({
     );
   }
   const mine = pending ? true : message!.sender_id === myId;
+  // Removed by a moderator (admin_set_hidden): the text and photo are gone.
+  if (message?.meta?.hidden) {
+    return (
+      <View
+        className={`mb-1 rounded-2xl border border-line px-3.5 py-2.5 ${mine ? "self-end" : "self-start"}`}
+      >
+        <Text className="text-[15px] italic text-muted">This message was removed</Text>
+      </View>
+    );
+  }
   const kind = pending?.kind ?? message!.kind;
   const body = pending?.body ?? message?.body ?? null;
   const warning = mine ? null : scamWarning(body);
@@ -47,9 +59,11 @@ export function MessageBubble({
   return (
     <View className={`mb-1 max-w-[78%] gap-1 ${mine ? "items-end self-end" : "items-start self-start"}`}>
       <Pressable
-        disabled={!pending?.failed}
+        disabled={!pending?.failed && (mine || !onReport)}
         accessibilityRole={pending?.failed ? "button" : undefined}
+        accessibilityHint={!mine && onReport ? "Long press to report" : undefined}
         onPress={() => pending && onRetry(pending)}
+        onLongPress={() => !mine && message && onReport?.(message)}
         className={pending && !pending.failed ? "opacity-60" : ""}
       >
         {kind === "image" ? (

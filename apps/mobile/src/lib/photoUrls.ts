@@ -2,7 +2,7 @@ import { supabase } from "./supabase";
 
 // Signed URLs for private photos (spec 4.7). Requests made in the same moment, such as every card of a
 // feed page, go out as one createSignedUrls call per bucket. URLs live an hour and are reused for 55 minutes.
-export type Bucket = "listing-photos" | "chat-images";
+export type Bucket = "listing-photos" | "chat-images" | "dispute-evidence";
 const LIFETIME_SECONDS = 3600;
 const REUSE_MS = 55 * 60 * 1000;
 

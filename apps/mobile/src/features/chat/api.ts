@@ -13,7 +13,7 @@ export type Message = {
   kind: "text" | "image" | "system";
   body: string | null;
   image_path: string | null;
-  meta: { event?: string; status?: string; user_id?: string; trade_id?: string } | null;
+  meta: { event?: string; status?: string; user_id?: string; trade_id?: string; hidden?: boolean } | null;
   client_id: string;
   created_at: string;
 };
@@ -181,6 +181,10 @@ export function systemText(meta: Message["meta"], myId: string, partnerName: str
 export function previewText(message: ChatRow["last_message"], myId: string, partnerName: string): string {
   if (!message) return "";
   if (message.kind === "system") return systemText(message.meta, myId, partnerName);
-  const text = message.kind === "image" ? "Photo" : (message.body ?? "");
+  const text = message.meta?.hidden
+    ? "Message removed"
+    : message.kind === "image"
+      ? "Photo"
+      : (message.body ?? "");
   return message.sender_id === myId ? `You: ${text}` : text;
 }

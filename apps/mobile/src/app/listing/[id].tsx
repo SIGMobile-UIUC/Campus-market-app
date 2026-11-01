@@ -17,12 +17,14 @@ import { useAccount } from "@/features/account/account";
 import { openChat } from "@/features/chat/api";
 import { Avatar, type Loadout } from "@/features/avatar/Avatar";
 import { conditionLabel, paymentLabel } from "@/features/listings/types";
+import { confirmBlock, ReportMenu, type ReportTarget } from "@/features/moderation/moderation";
 import { errorMessage } from "@/lib/errors";
 import { formatAgo, formatPrice } from "@/lib/format";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/ui/Button";
 import { GradeBadge } from "@/ui/GradeBadge";
 import { Header } from "@/ui/Header";
+import { Menu, MenuButton } from "@/ui/Menu";
 import { Photo } from "@/ui/Photo";
 import { TextLink } from "@/ui/TextLink";
 import { useTheme } from "@/ui/theme";
@@ -97,6 +99,8 @@ export default function ListingPage() {
   const [opening, setOpening] = useState(false);
   // Items picked on a move-out sale carry over to the proposal sheet (APP-10).
   const [picked, setPicked] = useState<string[]>([]);
+  const [menu, setMenu] = useState(false);
+  const [reporting, setReporting] = useState<ReportTarget | null>(null);
 
   // On focus, so coming back from the editor shows the saved changes.
   useFocusEffect(
@@ -150,6 +154,7 @@ export default function ListingPage() {
   }
 
   const mine = listing.owner_id === session?.user.id;
+  const ownerName = listing.owner?.display_name ?? "this seller";
   const toggleSave = async () => {
     const next = !saved;
     setSaved(next);
@@ -165,7 +170,10 @@ export default function ListingPage() {
 
   return (
     <View className="flex-1 bg-bg">
-      <Header title="" />
+      <Header
+        title=""
+        right={mine ? undefined : () => <MenuButton label="Listing options" onPress={() => setMenu(true)} />}
+      />
       <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
         <Carousel photos={listing.listing_photos} />
         <View className="gap-5 px-5 pt-4">
@@ -236,6 +244,22 @@ export default function ListingPage() {
           </>
         )}
       </View>
+      <Menu
+        visible={menu}
+        onClose={() => setMenu(false)}
+        options={[
+          {
+            label: "Report listing",
+            onPress: () => setReporting({ type: "listing", ref: listing.id, label: "this listing" }),
+          },
+          {
+            label: `Block ${ownerName}`,
+            destructive: true,
+            onPress: () => confirmBlock(listing.owner_id, ownerName, () => router.back()),
+          },
+        ]}
+      />
+      <ReportMenu target={reporting} onClose={() => setReporting(null)} />
     </View>
   );
 }

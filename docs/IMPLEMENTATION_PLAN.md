@@ -130,7 +130,7 @@ Done when: two phones complete a trade end to end on staging, with push notifica
 | DB-14 | No-show disputes: open, respond, evidence, admin decision; evidence bucket | Backend | Done; GPS check-ins and the automatic rule are P1, `add_evidence` comes if reviewers need more than the claim and response, evidence purge with FN-2 |
 | APP-12 | Me tab: grade card with progress, wallet and history, daily check-in, shop and avatar editor (SVG layers); the points toast after a trade or review | App | Done; the check-in dot on the Me tab icon comes later, the pet is P1 |
 | APP-21 | Public profile (ACC-4): nickname, school and grade badges, review tag counts, active listings, member since, reply time; the seller's trade count and reply time on the listing page; offer counts on request cards | Backend | |
-| APP-13 | Report and block menus; account status page; admin queue and case view for admins; removed messages shown as removed in the chat | App | |
+| APP-13 | Report and block menus; account status page; admin queue and case view for admins; removed messages shown as removed in the chat | App | Done; profile menus come with the public profile (APP-21), the contact address in Settings with APP-19 |
 | APP-14 | Dispute flow with in-app camera evidence | App | |
 | APP-19 | Settings: notifications, privacy and consent changes, blocked users, community rules, contact address, data credits (GeoNames, CC BY 4.0), account (entry to account deletion) | App | |
 | TST-3 | Race test for the daily points cap; pgTAP for trust grades and points rules | Backend | |

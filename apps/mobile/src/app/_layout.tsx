@@ -71,6 +71,9 @@ function Shell() {
               <Stack.Screen name="wallet" />
               <Stack.Screen name="grade" />
               <Stack.Screen name="shop" />
+              <Stack.Screen name="account-status" />
+              <Stack.Screen name="admin/index" />
+              <Stack.Screen name="admin/[id]" />
               <Stack.Screen
                 name="sell"
                 options={{

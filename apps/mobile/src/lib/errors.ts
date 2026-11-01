@@ -7,7 +7,7 @@ const MESSAGES: Record<string, string> = {
   AUTH_REQUIRED: "Your session ended. Sign in again.",
   ACCOUNT_SUSPENDED: "Your account is suspended.",
   VALIDATION_FAILED: "Some details aren't valid. Check them and try again.",
-  ALREADY_EXISTS: "That nickname is taken.",
+  ALREADY_EXISTS: "That already exists.",
   PROHIBITED_CONTENT: "That isn't allowed. Try something else.",
   ZIP_REQUIRED: "Enter a valid US ZIP code.",
   INVALID_STATE: "This step is already done.",

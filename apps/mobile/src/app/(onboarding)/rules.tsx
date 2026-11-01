@@ -43,7 +43,10 @@ export default function RulesAndConsent() {
     if (rpcError && rpcError.message !== "INVALID_STATE") {
       setBusy(false);
       const nickname = rpcError.message === "ALREADY_EXISTS" || rpcError.message === "PROHIBITED_CONTENT";
-      return setError({ text: errorMessage(rpcError), nickname });
+      return setError({
+        text: errorMessage(rpcError, { ALREADY_EXISTS: "That nickname is taken." }),
+        nickname,
+      });
     }
     // Once the account reads as onboarded, the root layout switches to Home.
     await refresh();

@@ -2769,13 +2769,13 @@ PostgREST returns HTTP 400 with `{ "code": "P0001", "message": "ITEM_UNAVAILABLE
 | --- | --- | --- | --- |
 | `get_my_account()` | none | `{ email, secondary_email, secondary_verified, campus, display_name, tier, status, onboarded, avatar ({ slot: asset_key }), created_at }`; works for suspended users | `AUTH_REQUIRED` |
 | `complete_onboarding(display_name, starter_avatar, accept_terms_version, analytics, personalized_ads, zip, timezone)` | text, text (a look id from `app_config.starter_avatars`), text, bool, bool, text (general users), text | profile | `VALIDATION_FAILED` (including an unknown look), `ALREADY_EXISTS` (nickname taken, ignoring case), `PROHIBITED_CONTENT` (including the reserved `deleted_` prefix), `ZIP_REQUIRED`, `INVALID_STATE` (already onboarded) |
-| `change_display_name(display_name, request_id)` | text, uuid | `{ display_name, points_spent, balance }` | `COOLDOWN_ACTIVE`, `INSUFFICIENT_POINTS`, `ALREADY_EXISTS`, `PROHIBITED_CONTENT` |
+| `change_display_name(display_name, request_id)` (APP-22) | text, uuid | `{ display_name, points_spent, balance }` | `COOLDOWN_ACTIVE`, `INSUFFICIENT_POINTS`, `ALREADY_EXISTS`, `PROHIBITED_CONTENT` |
 | `set_consent(analytics, personalized_ads, policy_version)` | bool, bool, text | consent | `VALIDATION_FAILED` |
-| `update_settings(settings)` | jsonb (`lock_screen_preview`, `push_prefs`) | settings | `VALIDATION_FAILED` |
+| `update_settings(settings)` (P1, ACC-9) | jsonb (`lock_screen_preview`, `push_prefs`) | settings | `VALIDATION_FAILED` |
 | `register_push_token(token, platform)` | Expo push token, `ios` or `android` | none (a token used by another account moves to the caller) | `VALIDATION_FAILED` |
 | `unregister_push_token(token)` | text | none (only the caller's own token) | |
-| `my_account_status()` | none | `{ penalties[], active_actions[] }` (`appealable[]` from P1) | |
-| `log_events(events)` | jsonb: `[{event_id, name, occurred_at, session_id, screen, props, context}]`, at most 50 | `{ accepted }` | `FORBIDDEN` (no analytics consent), `VALIDATION_FAILED` (name or prop not in the catalog), `RATE_LIMITED` (1,000 per hour) |
+| `my_account_status()` (with appeals, P1) | none | `{ penalties[], active_actions[] }` (`appealable[]` from P1); until then the app reads its own `enforcement_actions` and `penalties` rows | |
+| `log_events(events)` (DB-15) | jsonb: `[{event_id, name, occurred_at, session_id, screen, props, context}]`, at most 50 | `{ accepted }` | `FORBIDDEN` (no analytics consent), `VALIDATION_FAILED` (name or prop not in the catalog), `RATE_LIMITED` (1,000 per hour) |
 
 Sign-in uses Supabase Auth directly (`signInWithOtp` with `shouldCreateUser: true`, then `verifyOtp`). The Before User Created hook returns these messages to the app: `EMAIL_NOT_ALLOWED` (disposable domain), `PLUS_ADDRESS_NOT_ALLOWED`, `REGISTRATION_BLOCKED`.
 
@@ -2788,10 +2788,10 @@ Sign-in uses Supabase Auth directly (`signInWithOtp` with `shouldCreateUser: tru
 | `close_listing(listing_id)`, `reopen_listing(listing_id, photos)` | uuid; jsonb photos, required when the photos were purged | listing | `FORBIDDEN`, `INVALID_STATE`, `VALIDATION_FAILED` (purged listing without new photos) |
 | `delete_listing(listing_id)` | uuid | none | `FORBIDDEN`, `ITEM_UNAVAILABLE` (an item is in an active trade) |
 | `mark_sold_elsewhere(item_ids)` | uuid[] | items | `FORBIDDEN`, `ITEM_UNAVAILABLE` |
-| `bump_listing(listing_id, request_id)` | uuid, uuid | `{ bumped_at, balance }` | `COOLDOWN_ACTIVE`, `LIMIT_REACHED`, `INSUFFICIENT_POINTS`, `INVALID_STATE` |
+| `bump_listing(listing_id, request_id)` (P1) | uuid, uuid | `{ bumped_at, balance }` | `COOLDOWN_ACTIVE`, `LIMIT_REACHED`, `INSUFFICIENT_POINTS`, `INVALID_STATE` |
 | `feed(scope, filters, cursor, limit)` (invoker) | `campus` or `open`; jsonb (`mode` (free, move_out, wanted, under_10, course), `category, subcategory, price_min, price_max, condition, zone_id, free_only`, and from P1 `within_miles`, `students_only`); jsonb cursor; int (max 40) | `{ rows[], next_cursor }` | `CAMPUS_REQUIRED` for `campus` scope without a live campus |
 | `search_listings(q, scope, filters, sort, cursor, limit)` (invoker) | text, text, jsonb, `newest` / `price_asc` / `price_desc` / `distance`, jsonb, int | `{ rows[], next_cursor }` | `VALIDATION_FAILED` |
-| `get_listing(listing_id)` (invoker) | uuid | listing with items, photos, owner card, distance | `NOT_FOUND` (also for invisible listings); for a campus-only listing from another campus, returns `{ locked: true, campus_name }` |
+| `get_listing(listing_id)` (invoker, P1 with the locked preview; until then the app reads `listings`) | uuid | listing with items, photos, owner card, distance | `NOT_FOUND` (also for invisible listings); for a campus-only listing from another campus, returns `{ locked: true, campus_name }` |
 
 Feed and search rows carry `id, kind, title, price_cents (the item's price, a sale's lowest available price, or a wanted budget), item_count, status, campus_only, thumb_path, blurhash, owner { display_name, tier, campus_slug (null for general users) }, zone, area_label, distance_miles (P1), bumped_at`.
 
@@ -2834,7 +2834,7 @@ Favorites use the `favorites` table directly (insert or delete own rows). Seller
 | `respond_dispute(dispute_id, statement, photo_paths)` | uuid, text, text[] (up to 5) | dispute in `under_review` | `FORBIDDEN` (respondent only), `WINDOW_CLOSED`, `VALIDATION_FAILED` |
 | `add_evidence(dispute_id, kind, payload)` (later) | uuid, `photo` / `statement`, jsonb | evidence | `FORBIDDEN`, `INVALID_STATE` |
 | `withdraw_dispute(dispute_id)` | uuid | dispute (before the other side responds) | `FORBIDDEN`, `INVALID_STATE` |
-| `meetup_checkin(trade_id, lat, lng, accuracy_m, mocked)` | uuid, float, float, float, bool | `{ valid, distance_m }` | `NOT_PARTY`, `WINDOW_CLOSED` (outside 30 minutes of `meet_at`), `ALREADY_EXISTS` |
+| `meetup_checkin(trade_id, lat, lng, accuracy_m, mocked)` (P1) | uuid, float, float, float, bool | `{ valid, distance_m }` | `NOT_PARTY`, `WINDOW_CLOSED` (outside 30 minutes of `meet_at`), `ALREADY_EXISTS` |
 | `submit_review(trade_id, rating, tags, comment)` | uuid, int, text[], text | `{ review, points_awarded }` | `NOT_PARTY`, `INVALID_STATE` (trade not completed), `WINDOW_CLOSED` (after 14 days), `ALREADY_EXISTS`, `VALIDATION_FAILED` (unknown tag) |
 
 Evidence photos are uploaded to the private `dispute-evidence` bucket under `{trade_id}/{user_id}/` before the call (the dispute does not exist yet when it is opened); the function checks the paths belong to the caller. The parties and the admins of an open dispute on the trade read them.
@@ -2848,7 +2848,7 @@ Evidence photos are uploaded to the private `dispute-evidence` bucket under `{tr
 | `check_in()` | none | `{ checked_in, streak, points_awarded }` (`checked_in: false` if already done today) | `ACCOUNT_SUSPENDED` |
 | `purchase_item(item_id, purchase_id)` | uuid, uuid | `{ purchase, balance }` | `INSUFFICIENT_POINTS`, `ALREADY_OWNED`, `ITEM_NOT_FOR_SALE`, `TIER_REQUIRED` |
 | `equip_item(slot, item_id)` | `item_slot`, uuid or null (unequip) | loadout | `FORBIDDEN` (not owned), `VALIDATION_FAILED` (wrong slot) |
-| `feed_pet(item_id)` | uuid (a `pet_treat` in inventory) | `{ treat_until, quantity_left }` | `FORBIDDEN`, `VALIDATION_FAILED` |
+| `feed_pet(item_id)` (P1) | uuid (a `pet_treat` in inventory) | `{ treat_until, quantity_left }` | `FORBIDDEN`, `VALIDATION_FAILED` |
 
 ### 6.9 Safety
 
@@ -2870,11 +2870,11 @@ Every admin function writes `private.admin_log` and checks the caller's role and
 | `admin_resolve_report(report_id, outcome, harassment, note)` | campus admin | Actions or dismisses every open report on the target; `harassment` adds the penalty |
 | `admin_set_hidden(target_type, target_ref, hidden, reason)` | campus admin | Hides (with a reason) or restores a listing or message |
 | `admin_enforce(user_id, kind, duration, reason_code, policy_ref, case_type, case_id, note)` | campus admin within limits | Creates an enforcement action; campus admins up to a 7-day suspension, super admins anything (proposals for approval from P1) |
-| `admin_correct_points(user_id, delta, note)` | super admin | Correction up to 1,000 points per call |
+| `admin_correct_points(user_id, delta, note)` (not built; SQL for now) | super admin | Correction up to 1,000 points per call |
 | `admin_set_config(key, value)` | super admin | Changes an `app_config` value such as `rank_rules` or `points_rules`; a rank change queues every user for recompute |
 | `admin_decide_appeal(appeal_id, decision, note)` (P1) | admin other than the original decider | Upholds or overturns; an overturn revokes penalties, ends actions and restores reversed points |
-| `admin_set_campus(campus_id, patch)` | super admin | Theme, zones, spots, status |
-| `admin_grant_role(user_id, role, campus_id)`, `admin_revoke_role(...)` | super admin | Admin appointments |
+| `admin_set_campus(campus_id, patch)` (not built; SQL for now) | super admin | Theme, zones, spots, status |
+| `admin_grant_role(user_id, role, campus_id)`, `admin_revoke_role(...)` (not built; SQL for now) | super admin | Admin appointments |
 
 ### 6.11 Edge Functions
 

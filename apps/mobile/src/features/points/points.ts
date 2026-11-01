@@ -4,7 +4,7 @@ import { GRADE_LETTERS } from "@/ui/GradeBadge";
 // get_wallet (spec 6.8).
 export type Wallet = { balance: number; earned_today: number; daily_cap: number };
 // The caller's own rank_stats row; none until the first recompute after a trade or review.
-export type Rank = {
+type Rank = {
   counted_trades: number;
   reviews_count: number;
   rating_bayes: number;

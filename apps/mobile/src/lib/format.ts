@@ -32,6 +32,11 @@ export function formatAgo(iso: string, now: Date = new Date()): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+// "Nov 1, 2026", for end and expiry dates.
+export function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
 // "5:30 PM", for chat messages.
 export function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });

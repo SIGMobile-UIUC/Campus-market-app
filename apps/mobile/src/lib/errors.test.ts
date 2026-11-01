@@ -4,7 +4,7 @@ test.each([
   ["PLUS_ADDRESS_NOT_ALLOWED", "Addresses with + can't be used. Use your main email address."],
   ["EMAIL_NOT_ALLOWED", "Temporary email addresses can't be used."],
   ["REGISTRATION_BLOCKED", "This email can't be used to sign up."],
-  ["ALREADY_EXISTS", "That nickname is taken."],
+  ["ALREADY_EXISTS", "That already exists."],
   ["ZIP_REQUIRED", "Enter a valid US ZIP code."],
 ])("maps the server code %s", (code, text) => {
   expect(errorMessage({ message: code })).toBe(text);

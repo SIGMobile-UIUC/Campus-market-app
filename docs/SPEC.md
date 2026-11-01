@@ -2769,7 +2769,7 @@ PostgREST returns HTTP 400 with `{ "code": "P0001", "message": "ITEM_UNAVAILABLE
 | --- | --- | --- | --- |
 | `get_my_account()` | none | `{ email, secondary_email, secondary_verified, campus, display_name, tier, status, onboarded, avatar ({ slot: asset_key }), created_at }`; works for suspended users | `AUTH_REQUIRED` |
 | `complete_onboarding(display_name, starter_avatar, accept_terms_version, analytics, personalized_ads, zip, timezone)` | text, text (a look id from `app_config.starter_avatars`), text, bool, bool, text (general users), text | profile | `VALIDATION_FAILED` (including an unknown look), `ALREADY_EXISTS` (nickname taken, ignoring case), `PROHIBITED_CONTENT` (including the reserved `deleted_` prefix), `ZIP_REQUIRED`, `INVALID_STATE` (already onboarded) |
-| `change_display_name(display_name, request_id)` (APP-22) | text, uuid | `{ display_name, points_spent, balance }` | `COOLDOWN_ACTIVE`, `INSUFFICIENT_POINTS`, `ALREADY_EXISTS`, `PROHIBITED_CONTENT` |
+| `change_display_name(display_name, request_id)` | text, uuid | `{ display_name, points_spent, balance }`; a retried request id returns without another charge | `COOLDOWN_ACTIVE`, `INSUFFICIENT_POINTS`, `ALREADY_EXISTS`, `PROHIBITED_CONTENT`, `VALIDATION_FAILED` |
 | `set_consent(analytics, personalized_ads, policy_version)` | bool, bool, text | consent | `VALIDATION_FAILED` |
 | `update_settings(settings)` (P1, ACC-9) | jsonb (`lock_screen_preview`, `push_prefs`) | settings | `VALIDATION_FAILED` |
 | `register_push_token(token, platform)` | Expo push token, `ios` or `android` | none (a token used by another account moves to the caller) | `VALIDATION_FAILED` |

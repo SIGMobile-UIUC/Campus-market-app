@@ -145,7 +145,7 @@ Done when: after a completed trade both users see their new points and, once the
 | DB-15 | `private.events`, `log_events`, `app_config.event_catalog`; `daily-maintenance` job (cleanup, purge, wallet audit) | Backend | Done; media purges join the job with FN-2, check-in purges with GPS (P1) |
 | APP-15 | Analytics queue with consent; the P0 event catalog from spec 4.17.5 | App | Done; `share` waits for a share feature and `sell_step` for a multi-step sell flow |
 | FN-2 | `delete-account` and `media-purge`; the Delete account entry in Settings | Backend | Done; daily-maintenance calls `media-purge` once its Vault secrets are set |
-| INF-5 | Merge to `main` applies migrations to staging; preview builds for testers | Platform | Migrations and Edge Functions done (the `staging` job in CI); preview builds later |
+| INF-5 | Merge to `main` applies migrations to staging; preview builds for testers | Platform | Done for Android: the `staging` job applies migrations and deploys Edge Functions; the `preview` EAS profile builds an APK on staging. iOS waits for the Apple account |
 | QA-1 | Real-device pass on iOS and Android, demo seed data, demo script rehearsed twice | All | |
 
 Feature freeze: Monday, Nov 30. Week 10 is for fixes and the demo only.

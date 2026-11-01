@@ -36,6 +36,17 @@ npx expo start
 
 Press `a` for the emulator, or scan the QR code with your phone. Sign in with any email; the code arrives in Mailpit.
 
+## Preview builds
+
+Testers install a standalone Android APK that talks to the staging backend, so it needs neither Metro nor a local backend. EAS takes the staging URL and publishable key from the project's `preview` environment variables on Expo.
+
+```bash
+cd apps/mobile
+npx eas-cli build --profile preview --platform android
+```
+
+Share the install link it prints. The APK uses the same package name as the development build, so installing one replaces the other on a device. iOS builds wait for an Apple Developer account.
+
 ## Checks
 
 Pull requests run these in CI; run them before you push:

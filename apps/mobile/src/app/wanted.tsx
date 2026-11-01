@@ -18,7 +18,7 @@ const WANTED = MODES.find((m) => m.id === "wanted")!;
 // Wanted board (spec 3.3, LST-3): a "Post a request" banner, category chips and request cards.
 export default function WantedBoard() {
   const scope = useScope();
-  const { account } = useAccount();
+  const { session } = useAccount();
   const { categories } = useCategories();
   const [category, setCategory] = useState<string | null>(null);
   const results = useListings({ scope, filters: { mode: "wanted", category: category ?? undefined } });
@@ -33,11 +33,7 @@ export default function WantedBoard() {
         keyExtractor={(row) => row.id}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32, gap: 12 }}
         renderItem={({ item }) => (
-          <WantedCard
-            row={item}
-            offers={offers.get(item.id)}
-            mine={item.owner.display_name === account?.display_name}
-          />
+          <WantedCard row={item} offers={offers.get(item.id)} mine={item.owner.id === session?.user.id} />
         )}
         onEndReached={() => void results.loadMore()}
         onEndReachedThreshold={0.6}

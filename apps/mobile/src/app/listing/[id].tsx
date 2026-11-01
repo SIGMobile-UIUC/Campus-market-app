@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAccount } from "@/features/account/account";
 import { openChat } from "@/features/chat/api";
 import { Avatar, type Loadout } from "@/features/avatar/Avatar";
-import { conditionLabel, paymentLabel } from "@/features/listings/types";
+import { conditionLabel, hiddenNote, paymentLabel } from "@/features/listings/types";
 import { confirmBlock, ReportMenu, type ReportTarget } from "@/features/moderation/moderation";
 import { fetchProfile, replyLabel, tradesLabel, type PublicProfile } from "@/features/profile/profile";
 import { errorMessage } from "@/lib/errors";
@@ -58,6 +58,8 @@ type Listing = {
   payment_methods: string[];
   budget_cents: number | null;
   status: "active" | "sold_out" | "closed";
+  hidden: boolean;
+  hidden_reason: string | null;
   bumped_at: string;
   zone: { name: string } | null;
   items: Item[];
@@ -72,6 +74,7 @@ type Listing = {
 
 // Readable through the listings policy only, so a listing the caller may not see comes back empty.
 const SELECT = `id, owner_id, kind, title, description, visibility, area_label, payment_methods, budget_cents, status,
+  hidden, hidden_reason,
   bumped_at, zone:campus_zones(name), items(id, position, name, price_cents, negotiable, condition, status),
   listing_photos(id, path, thumb_path, blurhash, position, item_id),
   owner:profiles!listings_owner_id_fkey(display_name, tier, campus:campuses!profiles_campus_id_fkey(short_name, name),
@@ -178,6 +181,11 @@ export default function ListingPage() {
       <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
         <Carousel photos={listing.listing_photos} />
         <View className="gap-5 px-5 pt-4">
+          {mine && listing.hidden ? (
+            <Text className="rounded-2xl border border-danger p-3 text-[13px] text-danger">
+              {hiddenNote(listing.hidden_reason)}. Questions? Use the contact address in Settings.
+            </Text>
+          ) : null}
           <Seller listing={listing} />
           <Summary listing={listing} />
           {listing.kind === "bundle" ? (

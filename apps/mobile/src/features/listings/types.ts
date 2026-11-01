@@ -11,7 +11,7 @@ export type FeedRow = {
   campus_only: boolean;
   thumb_path: string | null;
   blurhash: string | null;
-  owner: { display_name: string; tier: string; campus_slug: string | null };
+  owner: { id: string; display_name: string; tier: string; campus_slug: string | null };
   zone: string | null;
   area_label: string;
   bumped_at: string;
@@ -75,12 +75,20 @@ export type OwnListingRow = {
   area_label: string;
   bumped_at: string;
   budget_cents: number | null;
+  hidden: boolean;
+  hidden_reason: string | null;
   items: { id: string; price_cents: number; status: "available" | "reserved" | "sold" }[];
   listing_photos: { thumb_path: string; blurhash: string; position: number }[];
 };
 
+// Why the owner's listing is hidden from others (spec 5.2: the owner still sees it with the reason).
+export const hiddenNote = (reason: string | null) =>
+  reason === "reported"
+    ? "Hidden from others after several reports while an admin reviews it"
+    : `Hidden from others by an admin: ${reason ?? "no reason given"}`;
+
 export const OWN_LISTING_SELECT =
-  "id, kind, title, status, visibility, area_label, bumped_at, budget_cents, items(id, price_cents, status), listing_photos(thumb_path, blurhash, position)";
+  "id, kind, title, status, visibility, area_label, bumped_at, budget_cents, hidden, hidden_reason, items(id, price_cents, status), listing_photos(thumb_path, blurhash, position)";
 
 export function rowToCard(row: OwnListingRow): ListingCardData {
   const available = row.items.filter((i) => i.status === "available");

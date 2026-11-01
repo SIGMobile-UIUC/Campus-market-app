@@ -18,7 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAccount } from "@/features/account/account";
 import { Avatar } from "@/features/avatar/Avatar";
-import { rowToCard } from "@/features/listings/types";
+import { hiddenNote, rowToCard } from "@/features/listings/types";
 import { useMyListings, type MyListing } from "@/features/listings/useMyListings";
 import { checkinState, fetchMeStats, nextTier, type MeStats } from "@/features/points/points";
 import { errorMessage } from "@/lib/errors";
@@ -273,6 +273,7 @@ function Progress({ tier, stats, onCheckedIn }: { tier: string; stats: MeStats; 
 function statusLine(listing: MyListing) {
   const sold = listing.items.filter((i) => i.status === "sold").length;
   return [
+    listing.hidden ? hiddenNote(listing.hidden_reason) : null,
     listing.status === "closed" ? "Closed" : null,
     listing.kind === "bundle" && sold ? `${sold} of ${listing.items.length} sold` : null,
     `${listing.saves} ${listing.saves === 1 ? "save" : "saves"}`,

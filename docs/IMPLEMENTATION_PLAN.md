@@ -50,7 +50,7 @@ docs/                   SPEC.md, this plan
 | Staging | Supabase free project; Resend for sign-in codes | EAS preview builds for the team and testers |
 | Production | Created for the beta, not needed for the demo | |
 
-Staging Supabase setup, since `config.toml` applies only locally: keep Confirm email on; set the email OTP length to 6; paste `supabase/templates/code.html` into the confirmation and magic link templates; enable the Before User Created hook with `private.hook_before_user_created`; use Resend as the custom SMTP; add a random Vault secret named `email_hmac_key`; for `media-purge`, add Vault secrets `media_purge_url` (`https://<ref>.supabase.co/functions/v1/media-purge`) and `media_purge_secret`, and set the same random value as the function secret `MEDIA_PURGE_SECRET`.
+Staging Supabase setup, since `config.toml` applies only locally: keep Confirm email on; set the email OTP length to 6; paste `supabase/templates/code.html` into the confirmation and magic link templates; enable the Before User Created hook with `private.hook_before_user_created`; use Resend as the custom SMTP, sending as `noreply@campusmarket.trade` (the domain is verified in Resend; without a verified domain Resend only delivers to its account owner); add a random Vault secret named `email_hmac_key`; for `media-purge`, add Vault secrets `media_purge_url` (`https://<ref>.supabase.co/functions/v1/media-purge`) and `media_purge_secret`, and set the same random value as the function secret `MEDIA_PURGE_SECRET`.
 
 After a merge, the `staging` job in CI applies new migrations once the database checks pass. Its secrets (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_REF`) live in the GitHub `staging` environment, which only `main` may deploy from.
 

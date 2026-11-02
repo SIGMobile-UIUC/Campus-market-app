@@ -35,7 +35,7 @@ export type Trade = {
   cancel_reason: string | null;
   items: { line: number; item_id: string | null; name: string; price_cents: number }[];
   trade_confirmations: { user_id: string }[];
-  spot: { name: string } | null;
+  spot: { name: string; lat: number; lng: number } | null;
   listing: { title: string } | null;
   seller: { display_name: string | null; tier: string } | null;
   buyer: { display_name: string | null; tier: string } | null;
@@ -45,7 +45,7 @@ export type Trade = {
 
 const TRADE_SELECT = `id, listing_id, chat_id, seller_id, buyer_id, proposed_by, status, total_cents, meet_at,
   place_text, proposed_at, accepted_at, completed_at, closed_at, cancelled_by, cancel_reason,
-  items:trade_items(line, item_id, name, price_cents), trade_confirmations(user_id), spot:meetup_spots(name),
+  items:trade_items(line, item_id, name, price_cents), trade_confirmations(user_id), spot:meetup_spots(name, lat, lng),
   listing:listings!trades_listing_id_fkey(title), seller:profiles!trades_seller_id_fkey(display_name, tier),
   buyer:profiles!trades_buyer_id_fkey(display_name, tier), reviews(reviewer_id)`;
 // Named foreign keys: trades also reach listings through items and profiles through confirmations.

@@ -47,6 +47,7 @@ export const PAYMENTS = [
   ["paypal", "PayPal"],
   ["apple_pay", "Apple Pay"],
   ["cash_app", "Cash App"],
+  ["other", "Other (discuss in chat)"],
 ] as const;
 
 export const paymentLabel = (id: string) => PAYMENTS.find(([key]) => key === id)?.[1] ?? id;

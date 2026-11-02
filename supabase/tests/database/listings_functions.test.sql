@@ -2,7 +2,7 @@
 -- (spec 4.7, 5.2, 5.3.4, 6.4).
 begin;
 \ir _helpers.psql
-select plan(45);
+select plan(47);
 select tests.build_matrix();
 -- Reservations are faked here without trades; trades.test.sql covers real ones.
 alter table public.items drop constraint items_reserved_trade_id_fkey;
@@ -45,6 +45,12 @@ select throws_ok($$ select public.create_listing(tests.listing_payload(tests.use
   'P0001', 'VALIDATION_FAILED', 'the subcategory must belong to the category');
 select throws_ok($$ select public.create_listing(tests.listing_payload(tests.user_id('alpha1'), '{"payment_methods": ["bitcoin"]}'), gen_random_uuid()) $$,
   'P0001', 'VALIDATION_FAILED', 'unknown payment methods are rejected');
+select tests.remember('placed', (public.create_listing(tests.listing_payload(tests.user_id('alpha1'),
+  '{"payment_methods": ["cash", "other"], "meet_place": "  Illini Union  "}'), gen_random_uuid()) ->> 'id')::uuid);
+select is((select meet_place || ' ' || array_to_string(payment_methods, ',') from public.listings where id = tests.id('placed')),
+  'Illini Union cash,other', 'a typed meetup place is kept trimmed, and "other" is a payment method');
+select throws_ok($$ select public.create_listing(tests.listing_payload(tests.user_id('alpha1'), jsonb_build_object('meet_place', repeat('x', 81))),
+  gen_random_uuid()) $$, 'P0001', 'VALIDATION_FAILED', 'a meetup place has at most 80 characters');
 
 -- Photos are the caller's own uploads.
 select throws_ok($$ select public.create_listing(tests.listing_payload(tests.user_id('alpha1'), '{"photos": []}'), gen_random_uuid()) $$,

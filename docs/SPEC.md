@@ -208,7 +208,7 @@ Priority: **P0** is required for the MVP demo, **P1** for the public beta, **P2*
 | ID | Requirement | Priority | Acceptance criteria |
 | --- | --- | --- | --- |
 | CMP-1 | Campus theme | P0 | Primary and accent colors and a banner per campus. Text on campus colors meets WCAG AA contrast. |
-| CMP-2 | Zones and meetup spots | P0 | Each campus defines pickup zones and public meetup spots with coordinates. Every meetup listing has a zone. |
+| CMP-2 | Zones and meetup spots | P0 | A campus may define pickup zones and public meetup spots with coordinates. Zones are optional: campuses blend into their cities, so a seller can also type a meetup place. |
 | CMP-3 | Campus location | P0 | Each campus has coordinates, used as the area of its students' open-market listings. |
 | CMP-4 | Campus announcements | P1 | Campus admins post a banner with start and end dates. |
 | CMP-5 | Waitlist and campus launch | P1 | Waitlist count per recognized school. A super admin makes a campus live by adding its theme, zones and spots. |
@@ -744,7 +744,7 @@ Expo Router groups: `(auth)` for welcome, email and code (signed out), `(onboard
 | Browse | Categories | Category list on the left, subcategories with counts on the right, popular searches for the campus | P0 |
 | | Category results | Subcategory tabs, filter chips (market, price, condition, pickup zone, free only), result count, sort, "Alert me" (P2), two-column grid | P0 |
 | Search | Search | Opened from the home search bar: recent searches, filter sheet (category, price, condition, zone, free only, distance from P1), sort | P0 |
-| Listing | Listing page | Photo carousel, seller row with school badge, grade, trade count and reply time, price, condition and payment chips, description, move-out sale banner when the item is part of one, meetup map with the suggested spot, saves and chats counts, similar items, sticky bar with heart and Chat | P0 |
+| Listing | Listing page | Photo carousel, seller row with school badge, grade, trade count and reply time, price, condition and payment chips, description, move-out sale banner when the item is part of one, meetup zone and typed place with "Open in Maps" (the phone's maps app; no map inside the app), saves and chats counts, similar items, sticky bar with heart and Chat | P0 |
 | | Move-out sale page | Seller card with pickup dorm and end date, filter chips, item rows with checkboxes and status (reserved and sold cannot be selected), sticky bar with the selected count and "Ask about N items" | P0 |
 | | Wanted board | "Post a request" banner, category chips, request cards with budget, requester and offer count, "I have this" | P0 |
 | | Offer sheet | Opened by "I have this" (or Propose in a chat about a request): up to 3 photos, what is offered, condition, price checked against the budget, meetup time and place. "Send offer" posts the photos and a short note to the chat, proposes the trade and opens the chat | P0 |
@@ -753,7 +753,7 @@ Expo Router groups: `(auth)` for welcome, email and code (signed out), `(onboard
 | | Photos | Camera and library, reorder, up to 10 per item | P0 |
 | | Details | Title, category (suggested), condition, course code | P0 |
 | | Price | Price or Free, negotiable | P0 |
-| | Trade options | Meetup zone (students) or ZIP code (general users), payment methods, "Also show in the open market" (students, off by default) | P0 |
+| | Trade options | Meetup zone when the campus has zones, a typed meetup place (optional, up to 80 characters), ZIP code (general users), payment methods, "Also show in the open market" (students, off by default) | P0 |
 | | Bundle items | Add, reorder and price items; photos per item | P0 |
 | | Preview and post | Card as buyers will see it | P0 |
 | Chats | Chat list | Listing thumbnail, partner nickname and grade, last message, unread badge, active-trade chip; swipe or "..." to leave | P0 |
@@ -1202,7 +1202,7 @@ A pgTAP test reads `pg_proc` and fails when a `security definer` function in `pu
 - **Limits:** new listings in the last 24 hours, 20 for students and 5 for general users (`app_config.limits`), checked in `create_listing` under a lock on the owner's profile row, so parallel posts cannot exceed it. Deleted listings count.
 - **Retries:** `listings.request_id` is unique; a repeated `create_listing` returns the first result.
 - **Photos:** 1 to 10 per item for items and bundles, up to 3 for a wanted request; paths must be in the caller's folder of `listing-photos` (`{user_id}/...`). The bucket accepts WebP and JPEG up to 400 KB. Uploaders read their own folder; anyone else reads a photo only through a listing they can see.
-- **Payment methods:** any of `cash`, `venmo`, `zelle`, `paypal`, `apple_pay`, `cash_app`.
+- **Payment methods:** any of `cash`, `venmo`, `zelle`, `paypal`, `apple_pay`, `cash_app`, and `other` (agreed in chat).
 - **Signed URLs:** requested in batches per feed page (`createSignedUrls`, 1-hour expiry): `src/lib/photoUrls` collects every path requested in the same moment into one call and reuses a URL for 55 minutes. expo-image caches by `cacheKey = path`. When a load fails because a cached URL expired, the app requests a new URL for that path and retries once.
 - **One media module:** the app compresses, uploads and resolves photo URLs only through `src/lib/media`, and rows store object paths, never URLs. Moving photos to another store then changes this module and one Edge Function, not the screens or the schema.
 - **Orphans:** the daily maintenance job deletes objects older than 24 hours that no row references.
@@ -2072,6 +2072,7 @@ create table public.listings (
   subcategory     text not null,              -- id within the category
   course_code     text check (course_code ~ '^[A-Z]{2,5} ?[0-9]{2,4}[A-Z]?$'),
   zone_id         uuid references public.campus_zones on delete set null,
+  meet_place      text check (char_length(meet_place) between 1 and 80),  -- typed by the seller
   payment_methods text[] not null default '{}',
   budget_cents    integer check (budget_cents >= 0),
   status          public.listing_status not null default 'active',
@@ -2783,7 +2784,7 @@ Sign-in uses Supabase Auth directly (`signInWithOtp` with `shouldCreateUser: tru
 
 | Function | Params | Returns | Errors |
 | --- | --- | --- | --- |
-| `create_listing(listing, request_id)` | jsonb: `kind, title, description, category, subcategory, course_code, zone_id, zip (general users; defaults to the profile ZIP), payment_methods, visibility, budget_cents, items[{name, price_cents, negotiable, condition}], photos[{path, thumb_path, blurhash, bytes, item_position}]`; uuid | listing with items | `VALIDATION_FAILED`, `PROHIBITED_CONTENT`, `CAMPUS_REQUIRED`, `ZIP_REQUIRED`, `LIMIT_REACHED` (20 per day for students, 5 for general users), `RESTRICTED` |
+| `create_listing(listing, request_id)` | jsonb: `kind, title, description, category, subcategory, course_code, zone_id, meet_place, zip (general users; defaults to the profile ZIP), payment_methods, visibility, budget_cents, items[{name, price_cents, negotiable, condition}], photos[{path, thumb_path, blurhash, bytes, item_position}]`; uuid | listing with items | `VALIDATION_FAILED`, `PROHIBITED_CONTENT`, `CAMPUS_REQUIRED`, `ZIP_REQUIRED`, `LIMIT_REACHED` (20 per day for students, 5 for general users), `RESTRICTED` |
 | `update_listing(listing_id, changes)` | uuid, jsonb (same fields; items by position) | listing | `NOT_FOUND`, `FORBIDDEN`, `ITEM_UNAVAILABLE` (cannot edit or remove a reserved or sold item), `PROHIBITED_CONTENT` |
 | `close_listing(listing_id)`, `reopen_listing(listing_id, photos)` | uuid; jsonb photos, required when the photos were purged | listing | `FORBIDDEN`, `INVALID_STATE`, `VALIDATION_FAILED` (purged listing without new photos) |
 | `delete_listing(listing_id)` | uuid | none | `FORBIDDEN`, `ITEM_UNAVAILABLE` (an item is in an active trade) |

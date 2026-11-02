@@ -6,6 +6,7 @@ import { useAccount } from "@/features/account/account";
 import { fetchTrades, formatMeet, placeOf, STATUS_LABEL, type Trade } from "@/features/trades/api";
 import { TradeActions } from "@/features/trades/TradeCard";
 import { formatPrice } from "@/lib/format";
+import { openInMaps } from "@/lib/maps";
 import { GradeBadge } from "@/ui/GradeBadge";
 import { Header } from "@/ui/Header";
 import { TextLink } from "@/ui/TextLink";
@@ -98,6 +99,14 @@ export default function TradeDetails() {
           <Text className="text-sm font-bold text-ink">Meetup</Text>
           <Text className="text-[15px] text-ink">{formatMeet(trade.meet_at)}</Text>
           <Text className="text-[15px] text-ink">{placeOf(trade)}</Text>
+          {trade.spot || trade.place_text ? (
+            <View className="items-start">
+              <TextLink
+                label="Open in Maps"
+                onPress={() => openInMaps(placeOf(trade), trade.spot ?? undefined)}
+              />
+            </View>
+          ) : null}
         </View>
 
         <TradeActions trade={trade} myId={myId} partnerName={partnerName} onChanged={() => void load()} />

@@ -10,6 +10,7 @@ import { Toggle } from "@/ui/Toggle";
 
 export type TradeOptionsValue = {
   zoneId: string | null;
+  meetPlace: string;
   paymentMethods: string[];
   alsoOpen: boolean;
   zip: string;
@@ -17,13 +18,15 @@ export type TradeOptionsValue = {
 
 export const NO_TRADE_OPTIONS: TradeOptionsValue = {
   zoneId: null,
+  meetPlace: "",
   paymentMethods: [],
   alsoOpen: false,
   zip: "",
 };
 
-// Spec 3.3 Trade options: meetup zone for students of a live campus, ZIP code for general users,
-// payment methods, and "Also show in the open market" (students, off by default).
+// Spec 3.3 Trade options: a meetup zone when the campus has zones, a place the seller may type (zones
+// cannot cover every street a campus blends into), ZIP code for general users, payment methods, and
+// "Also show in the open market" (students, off by default).
 export function TradeOptions({
   value,
   onChange,
@@ -71,6 +74,14 @@ export function TradeOptions({
           </View>
         </View>
       ) : null}
+      <Field
+        label="Meetup place (optional)"
+        value={value.meetPlace}
+        onChangeText={(meetPlace) => set({ meetPlace })}
+        placeholder="e.g. Illini Union, Green St & 6th"
+        hint="A public spot or cross streets, not your home address. Buyers can open it in their maps app."
+        maxLength={80}
+      />
       {!campus ? (
         <Field
           label="ZIP code"
@@ -113,6 +124,7 @@ export function TradeOptions({
 export function tradeFields(value: TradeOptionsValue, live: boolean) {
   return {
     zone_id: value.zoneId,
+    ...(value.meetPlace.trim() ? { meet_place: value.meetPlace.trim() } : {}),
     payment_methods: value.paymentMethods,
     visibility: live && !value.alsoOpen ? "campus" : "open",
     ...(value.zip ? { zip: value.zip } : {}),

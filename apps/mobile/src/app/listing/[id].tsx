@@ -22,6 +22,7 @@ import { fetchProfile, replyLabel, tradesLabel, type PublicProfile } from "@/fea
 import { priceBucket, track } from "@/lib/analytics";
 import { errorMessage } from "@/lib/errors";
 import { formatAgo, formatPrice } from "@/lib/format";
+import { openInMaps } from "@/lib/maps";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/ui/Button";
 import { GradeBadge } from "@/ui/GradeBadge";
@@ -65,6 +66,7 @@ type Listing = {
   created_at: string;
   bumped_at: string;
   zone: { name: string } | null;
+  meet_place: string | null;
   items: Item[];
   listing_photos: PhotoRow[];
   owner: {
@@ -78,7 +80,7 @@ type Listing = {
 // Readable through the listings policy only, so a listing the caller may not see comes back empty.
 const SELECT = `id, owner_id, kind, title, description, visibility, area_label, payment_methods, budget_cents, status,
   hidden, hidden_reason, category, created_at,
-  bumped_at, zone:campus_zones(name), items(id, position, name, price_cents, negotiable, condition, status),
+  bumped_at, zone:campus_zones(name), meet_place, items(id, position, name, price_cents, negotiable, condition, status),
   listing_photos(id, path, thumb_path, blurhash, position, item_id),
   owner:profiles!listings_owner_id_fkey(display_name, tier, campus:campuses!profiles_campus_id_fkey(short_name, name),
     avatar_loadout(slot, shop_items(asset_key)))`;
@@ -241,6 +243,17 @@ export default function ListingPage() {
             <Text className="text-[15px] text-ink">
               {listing.zone ? `${listing.zone.name} · ${listing.area_label}` : listing.area_label}
             </Text>
+            {listing.meet_place ? <Text className="text-[15px] text-ink">{listing.meet_place}</Text> : null}
+            <View className="items-start">
+              <TextLink
+                label="Open in Maps"
+                onPress={() =>
+                  openInMaps(
+                    [listing.meet_place, listing.zone?.name, listing.area_label].filter(Boolean).join(", "),
+                  )
+                }
+              />
+            </View>
             <Text className="text-[13px] text-muted">
               Meet in a public place and check the item before you pay.
             </Text>

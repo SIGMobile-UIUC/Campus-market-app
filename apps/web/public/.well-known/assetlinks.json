@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.sigmobileuiuc.campusmarket",
+      "sha256_cert_fingerprints": ["41:4E:6F:E6:C8:3C:A5:C2:4F:5D:F4:5D:0A:7D:BB:74:F8:13:86:7D:96:16:7D:FA:E4:D2:D9:CD:04:51:94:6C"]
+    }
+  }
+]

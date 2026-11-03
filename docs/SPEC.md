@@ -1061,9 +1061,10 @@ flowchart LR
 | Postgres `private` | Email, secondary email, analytics mapping, GPS check-ins, logs, raw events; never exposed through the API |
 | Realtime | Chat messages, trade cards and badge updates over private Broadcast channels |
 | Storage | `listing-photos`, `chat-images`, `dispute-evidence` (all private, signed URLs); `campus-assets` (public). Listing and chat photos move to Cloudflare R2 when egress nears the Pro allowance (section 4.7). |
-| Edge Functions | Photo and evidence purge, secondary email codes, account deletion (push is sent from the database through pg_net) |
+| Edge Functions | Photo and evidence purge, secondary email codes, account deletion, share-link previews (push is sent from the database through pg_net) |
 | pg_cron, pg_net | Scheduled jobs; HTTP calls that are sent only after commit |
 | Resend | Sign-in codes and account notices from a domain with SPF, DKIM and DMARC |
+| Cloudflare Pages | `campusmarket.trade`: share-link web previews (LST-11), the Android App Links file and the latest APK link |
 
 ### 4.4 Tech stack
 
@@ -1094,6 +1095,7 @@ supabase/
   functions/              Edge Functions
   tests/                  pgTAP: RLS matrix, functions, function-security lint, concurrency over dblink
   seed.sql                demo campuses, domains, zones and spots (categories, shop items and rules are migrations)
+apps/web/                 share-link site on Cloudflare Pages
 docs/                     this documentation
 ```
 

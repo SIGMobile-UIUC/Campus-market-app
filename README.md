@@ -47,6 +47,19 @@ npx eas-cli build --profile preview --platform android
 
 Share the install link it prints. The APK uses the same package name as the development build, so installing one replaces the other on a device. iOS builds wait for an Apple Developer account.
 
+After each build, point `ANDROID` in `apps/web/functions/app.ts` at the new APK so `campusmarket.trade/app` always installs the latest one.
+
+## Share links
+
+`campusmarket.trade/l/<share_code>` opens a listing in the app, or a web preview for people without it (spec LST-11). The site lives in `apps/web` on Cloudflare Pages: `functions/l/[code].ts` renders the `listing-preview` Edge Function, `functions/app.ts` sends `/app` to the latest Android or iOS build, and `public/` holds the home page and the Android App Links file. Pushes to `main` deploy it after staging.
+
+To run it against staging, with `SUPABASE_URL` from `supabase/.env.staging.local`:
+
+```bash
+cd apps/web
+npx wrangler@4.151.1 pages dev public --binding SUPABASE_URL=https://<project-ref>.supabase.co
+```
+
 ## Checks
 
 Pull requests run these in CI; run them before you push:

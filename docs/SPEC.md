@@ -224,12 +224,12 @@ A listing contains one or more **items**, the units that are sold. See the [Glos
 | LST-3 | Wanted listing | P0 | A "Looking for" post with a budget and no items. Sellers respond in chat and offer what they have. |
 | LST-4 | Free items | P0 | Price 0 shows as Free. The seller chooses the recipient from chats. |
 | LST-5 | Trade method | P0 | Meetup only. Shipping comes with escrow after the MVP (Part 7). |
-| LST-6 | Visibility | P0 | Campus only (default) or also the open market. Students of non-live schools and general users post only to the open market. |
+| LST-6 | Visibility | P0 | Campus only (default) or also the open market. Students of non-live schools and general users post only to the open market. Campus-only listings stay out of other schools' feeds, search, chats and trades; a share link shows them read-only (LST-11). |
 | LST-7 | Manage a listing | P0 | Edit, delete, close. Mark any available item as sold elsewhere. |
 | LST-8 | Prohibited items | P0 | Prohibited categories cannot be chosen, and a keyword filter blocks prohibited items at posting ([Policies](#22-prohibited-items)). |
 | LST-9 | Adult items | P0 | Adult-oriented items are prohibited in the MVP ([Policies](#23-adult-items)). Allowing them with blur and an 18+ label is revisited after the MVP together with an age policy. |
 | LST-10 | Textbook fields | P1 | Course code tag (for example, CS 124), searchable and filterable. |
-| LST-11 | Share link | P1 | A link opens the listing in the app. Viewers outside the campus see a locked preview for campus-only listings. |
+| LST-11 | Share link and QR code | P1 | `campusmarket.trade/l/<code>` opens the listing in the app, or a web preview (photos, title, prices, each item's status) with link-preview tags for people without it, so a move-out sale posted on Reddit stays current. Anyone with the link sees a read-only preview, campus-only listings included; the seller and the meetup place stay off the web. The QR code (black and white, app icon in the middle) carries the same link and can be printed on flyers. |
 | LST-12 | Bump | P1 | Spend points to move a listing to the top of the feed (section 1.7.2). |
 | LST-13 | ISBN scan | P2 | Scanning a textbook barcode fills title, edition and author. |
 | LST-14 | Price hint | P2 | Shows the campus median sold price for similar items while setting a price. |
@@ -486,7 +486,7 @@ Only the MVP has a date. Later phases follow in this order, timed by the team.
 
 | Release | Timing | Scope | Exit criteria |
 | --- | --- | --- | --- |
-| MVP demo | December 2026 | All P0, with 2 to 3 live campuses in seed data | Sign up, list, chat, propose and complete a meetup trade, review, and see grade and points update. Campus-only listings never reach another school or a general user in tests. |
+| MVP demo | December 2026 | All P0, with 2 to 3 live campuses in seed data | Sign up, list, chat, propose and complete a meetup trade, review, and see grade and points update. Campus-only listings never reach another school's or a general user's feeds, search, chats or trades in tests; only a share link shows them, read-only. |
 | Public beta | After the MVP | P0 and P1, App Store and Google Play | Beta targets in section 1.4 on track. |
 | Growth | Later | P2, escrow and shipping (Part 7), more live campuses, business features | Every published data group meets the external sharing rules. |
 
@@ -748,7 +748,7 @@ Expo Router groups: `(auth)` for welcome, email and code (signed out), `(onboard
 | | Move-out sale page | Seller card with pickup dorm and end date, filter chips, item rows with checkboxes and status (reserved and sold cannot be selected), sticky bar with the selected count and "Ask about N items" | P0 |
 | | Wanted board | "Post a request" banner, category chips, request cards with budget, requester and offer count, "I have this" | P0 |
 | | Offer sheet | Opened by "I have this" (or Propose in a chat about a request): up to 3 photos, what is offered, condition, price checked against the budget, meetup time and place. "Send offer" posts the photos and a short note to the chat, proposes the trade and opens the chat | P0 |
-| | Locked preview | Campus-only listing opened from another school | P1 |
+| | Shared preview | A share link to a listing the viewer cannot otherwise see (campus-only, or signed out): read-only, with a campus-only banner and no chat, proposal or favorite | P1 |
 | Sell | Type | One item, Move-out sale, Give it away, Wanted request, with the market it posts to | P0 |
 | | Photos | Camera and library, reorder, up to 10 per item | P0 |
 | | Details | Title, category (suggested), condition, course code | P0 |
@@ -1179,6 +1179,7 @@ using (
 - `listings.campus_id` and `visibility` are set by `create_listing`, the only write path: the owner's campus (null for general users), and `CAMPUS_REQUIRED` for a campus-only post when the owner has no live campus.
 - General users and waitlist students have no live campus, so `my_live_campus_id()` returns null and they see only open listings.
 - Storage policies on each private bucket call a helper that applies the same visibility as the owning row (listing, chat, trade or dispute).
+- Share links (LST-11) are the one way around this policy: `listing_preview(share_code)` runs only for the `listing-preview` Edge Function and returns public fields, read-only. The 48-bit random code is the key, so links cannot be guessed.
 - Every `public` table has RLS enabled; a migration lint fails CI otherwise. Views use `security_invoker = true`.
 
 #### 4.6.6 Function security model
@@ -2073,6 +2074,7 @@ create table public.listings (
   course_code     text check (course_code ~ '^[A-Z]{2,5} ?[0-9]{2,4}[A-Z]?$'),
   zone_id         uuid references public.campus_zones on delete set null,
   meet_place      text check (char_length(meet_place) between 1 and 80),  -- typed by the seller
+  share_code      text not null unique,       -- 12 random hex characters for share links (LST-11)
   payment_methods text[] not null default '{}',
   budget_cents    integer check (budget_cents >= 0),
   status          public.listing_status not null default 'active',
@@ -2887,6 +2889,7 @@ Every admin function writes `private.admin_log` and checks the caller's role and
 | `send-secondary-code` | App (JWT) | `{ email }` | 204; 429 after 3 per hour |
 | `verify-secondary-code` | App (JWT) | `{ code }` | 204; 400 on a wrong or expired code |
 | `delete-account` | App (JWT) | `{ code }` (a fresh school-email code) | 204; 400 on a wrong or expired code; 409 if the user has an open dispute as respondent |
+| `listing-preview` | Share-link web page and app, no JWT | `GET ?code=<share_code>` | `listing_preview` (public fields only: no seller, meetup place or moderation fields) with photo URLs signed for an hour; 404 for a deleted or hidden listing |
 
 Push sending and receipts run in the database (section 4.16); devices register with `register_push_token(token, platform)` and `unregister_push_token(token)` (section 6.3). Push payloads never include message text when the recipient has `lock_screen_preview` off.
 

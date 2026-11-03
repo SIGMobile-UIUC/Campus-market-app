@@ -28,7 +28,7 @@ select set_eq(
         'admin_set_hidden', 'admin_enforce', 'admin_set_config',
         'open_dispute', 'respond_dispute', 'withdraw_dispute', 'admin_resolve_dispute', 'set_consent',
         'public_profile', 'offer_counts', 'change_display_name', 'log_events',
-        'delete_account', 'media_purge_due', 'media_purge_finish'],
+        'delete_account', 'media_purge_due', 'media_purge_finish', 'listing_preview'],
   'security definer functions in public match the allowlist'
 );
 

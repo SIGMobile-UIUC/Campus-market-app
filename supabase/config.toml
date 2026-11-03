@@ -403,6 +403,10 @@ MEDIA_PURGE_SECRET = "local-development-only"
 [functions.media-purge]
 verify_jwt = false
 
+# Share links open for anyone, signed in or not, on the web or in the app.
+[functions.listing-preview]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

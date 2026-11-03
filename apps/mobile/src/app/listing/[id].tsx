@@ -1,5 +1,6 @@
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { Check, ChevronRight, Heart } from "lucide-react-native";
+import { Check, ChevronRight, Heart, Share2 } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -16,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAccount } from "@/features/account/account";
 import { openChat } from "@/features/chat/api";
 import { Avatar, type Loadout } from "@/features/avatar/Avatar";
+import { QrSheet, shareLink } from "@/features/listings/share";
 import { conditionLabel, hiddenNote, paymentLabel } from "@/features/listings/types";
 import { confirmBlock, ReportMenu, type ReportTarget } from "@/features/moderation/moderation";
 import { fetchProfile, replyLabel, tradesLabel, type PublicProfile } from "@/features/profile/profile";
@@ -75,11 +77,33 @@ type Listing = {
     campus: { short_name: string | null; name: string } | null;
     avatar_loadout: { slot: string; shop_items: { asset_key: string } | null }[];
   } | null;
+  share_code: string;
+  // Set on a shared preview: the listing's campus, for the campus-only note.
+  preview?: { campus: string | null };
+};
+
+// listing-preview (LST-11): public fields only, with signed photo URLs in place of paths.
+type Preview = Pick<
+  Listing,
+  | "kind"
+  | "title"
+  | "description"
+  | "visibility"
+  | "area_label"
+  | "payment_methods"
+  | "budget_cents"
+  | "status"
+> & {
+  created_at: string;
+  zone: string | null;
+  campus: { name: string; short_name: string | null } | null;
+  items: Omit<Item, "id">[];
+  photos: { url: string | null; thumb_url: string | null; blurhash: string; item: number | null }[];
 };
 
 // Readable through the listings policy only, so a listing the caller may not see comes back empty.
 const SELECT = `id, owner_id, kind, title, description, visibility, area_label, payment_methods, budget_cents, status,
-  hidden, hidden_reason, category, created_at,
+  hidden, hidden_reason, category, created_at, share_code,
   bumped_at, zone:campus_zones(name), meet_place, items(id, position, name, price_cents, negotiable, condition, status),
   listing_photos(id, path, thumb_path, blurhash, position, item_id),
   owner:profiles!listings_owner_id_fkey(display_name, tier, campus:campuses!profiles_campus_id_fkey(short_name, name),
@@ -87,20 +111,74 @@ const SELECT = `id, owner_id, kind, title, description, visibility, area_label, 
 // Named foreign keys: profiles also reach listings through favorites, and campuses reach profiles
 // through user_roles, so PostgREST cannot pick the relationship on its own.
 
-// null: not found or not visible to the caller; "failed": the request itself failed.
-async function fetchListing(id: string): Promise<{ listing: Listing | null | "failed"; saved: boolean }> {
-  const [{ data, error }, favorite] = await Promise.all([
-    supabase.from("listings").select(SELECT).eq("id", id).is("deleted_at", null).maybeSingle(),
-    supabase.from("favorites").select("listing_id").eq("listing_id", id).maybeSingle(),
-  ]);
+// null: not found or not visible to the caller; "failed": the request itself failed. A share code finds
+// the listing the same way, and falls back to the public preview when the caller may not see it.
+async function fetchListing(
+  by: { id: string } | { code: string },
+  signedIn: boolean,
+): Promise<{ listing: Listing | null | "failed"; saved: boolean }> {
+  if ("code" in by && !signedIn) return { listing: await fetchPreview(by.code), saved: false };
+  const query = supabase.from("listings").select(`${SELECT}, favorites(user_id)`).is("deleted_at", null);
+  const { data, error } = await (
+    "id" in by ? query.eq("id", by.id) : query.eq("share_code", by.code)
+  ).maybeSingle();
   if (error) return { listing: "failed", saved: false };
-  return { listing: (data as unknown as Listing) ?? null, saved: !!favorite.data };
+  if (!data && "code" in by) return { listing: await fetchPreview(by.code), saved: false };
+  // Favorites are readable only by their owner, so any row here is the caller's.
+  return { listing: (data as unknown as Listing) ?? null, saved: !!data?.favorites.length };
 }
 
-// Listing page (spec 3.3). The seller row shows their trade count and reply time and opens their
-// profile (APP-21); the meetup map and similar items (DSC-6) are P1.
+async function fetchPreview(code: string): Promise<Listing | null | "failed"> {
+  const { data, error } = await supabase.functions.invoke<Preview>(`listing-preview?code=${code}`, {
+    method: "GET",
+  });
+  if (error || !data) {
+    return error instanceof FunctionsHttpError && (error.context as Response).status === 404
+      ? null
+      : "failed";
+  }
+  return {
+    ...data,
+    id: "",
+    owner_id: "",
+    hidden: false,
+    hidden_reason: null,
+    category: "",
+    bumped_at: data.created_at,
+    zone: data.zone ? { name: data.zone } : null,
+    meet_place: null,
+    items: data.items.map((item) => ({ ...item, id: String(item.position) })),
+    listing_photos: data.photos.map((photo, n) => ({
+      id: String(n),
+      path: photo.url,
+      thumb_path: photo.thumb_url ?? "",
+      blurhash: photo.blurhash,
+      position: n,
+      item_id: photo.item === null ? null : String(photo.item),
+    })),
+    owner: null,
+    share_code: code,
+    preview: { campus: data.campus ? (data.campus.short_name ?? data.campus.name) : null },
+  };
+}
+
+// Signing in from a shared preview rebuilds the navigation state without Home and without the route
+// params (expo-router, with the root anchor and protected routes), so the page reopens the link on top
+// of Home.
+let lastCode: string | undefined;
+
+// Listing page (spec 3.3), also opened by share links at /l/<code> (LST-11): a listing the viewer may
+// not see, or any listing while signed out, shows read-only from its public preview. The seller row
+// shows their trade count and reply time and opens their profile (APP-21); the meetup map and similar
+// items (DSC-6) are P1.
 export default function ListingPage() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, code } = useLocalSearchParams<{ id?: string; code?: string }>();
+  useEffect(() => {
+    if (code) lastCode = code;
+    if (id || code || !lastCode) return;
+    router.replace("/");
+    router.push({ pathname: "/l/[code]", params: { code: lastCode } });
+  }, [id, code]);
   const { session } = useAccount();
   const insets = useSafeAreaInsets();
   const [listing, setListing] = useState<Listing | null | "failed" | undefined>(undefined);
@@ -109,12 +187,16 @@ export default function ListingPage() {
   // Items picked on a move-out sale carry over to the proposal sheet (APP-10).
   const [picked, setPicked] = useState<string[]>([]);
   const [menu, setMenu] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [qr, setQr] = useState(false);
   const [reporting, setReporting] = useState<ReportTarget | null>(null);
+  const { colors } = useTheme();
+  const signedIn = !!session;
   const loaded = listing && listing !== "failed" ? listing : null;
 
   // view_item when the page opens and item_engagement with the time spent when it closes (4.17.5).
   useEffect(() => {
-    if (!loaded) return;
+    if (!loaded || loaded.preview) return;
     const opened = Date.now();
     track("view_item", {
       listing_id: loaded.id,
@@ -126,6 +208,7 @@ export default function ListingPage() {
       condition: loaded.kind === "item" ? (loaded.items[0]?.condition ?? null) : null,
       photo_count: loaded.listing_photos.length,
       listing_age_hours: Math.floor((opened - new Date(loaded.created_at).getTime()) / 3_600_000),
+      source: code ? "share_link" : null,
     });
     return () => {
       const seconds = (Date.now() - opened) / 1000;
@@ -141,7 +224,8 @@ export default function ListingPage() {
   useFocusEffect(
     useCallback(() => {
       let alive = true;
-      void fetchListing(id).then((result) => {
+      if (!id && !code) return;
+      void fetchListing(code ? { code } : { id: id! }, signedIn).then((result) => {
         if (!alive) return;
         setListing(result.listing);
         setSaved(result.saved);
@@ -149,11 +233,11 @@ export default function ListingPage() {
       return () => {
         alive = false;
       };
-    }, [id]),
+    }, [id, code, signedIn]),
   );
 
   const reload = () =>
-    void fetchListing(id).then((result) => {
+    void fetchListing(code ? { code } : { id: id! }, signedIn).then((result) => {
       setListing(result.listing);
       setSaved(result.saved);
     });
@@ -212,7 +296,23 @@ export default function ListingPage() {
     <View className="flex-1 bg-bg">
       <Header
         title=""
-        right={mine ? undefined : () => <MenuButton label="Listing options" onPress={() => setMenu(true)} />}
+        right={
+          listing.preview
+            ? undefined
+            : () => (
+                <View className="flex-row items-center gap-5">
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Share listing"
+                    onPress={() => setSharing(true)}
+                    hitSlop={12}
+                  >
+                    <Share2 size={22} color={colors.ink} />
+                  </Pressable>
+                  {mine ? null : <MenuButton label="Listing options" onPress={() => setMenu(true)} />}
+                </View>
+              )
+        }
       />
       <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
         <Carousel photos={listing.listing_photos} />
@@ -222,12 +322,20 @@ export default function ListingPage() {
               {hiddenNote(listing.hidden_reason)}. Questions? Use the contact address in Settings.
             </Text>
           ) : null}
-          <Seller listing={listing} />
+          {listing.preview ? (
+            listing.visibility === "campus" && listing.preview.campus ? (
+              <Text className="rounded-2xl bg-surface p-3 text-[13px] text-ink">
+                For {listing.preview.campus} students only. You can see it because someone shared the link.
+              </Text>
+            ) : null
+          ) : (
+            <Seller listing={listing} />
+          )}
           <Summary listing={listing} />
           {listing.kind === "bundle" ? (
             <SaleItems
               listing={listing}
-              picked={mine ? null : picked}
+              picked={mine || listing.preview ? null : picked}
               onToggle={(itemId) =>
                 setPicked((current) =>
                   current.includes(itemId) ? current.filter((i) => i !== itemId) : [...current, itemId],
@@ -264,7 +372,19 @@ export default function ListingPage() {
         className="flex-row items-center gap-3 border-t border-line px-5 pt-3"
         style={{ paddingBottom: Math.max(insets.bottom, 12) }}
       >
-        {mine ? (
+        {listing.preview ? (
+          signedIn ? (
+            <Text className="flex-1 py-3 text-center text-[13px] text-muted">
+              {listing.visibility === "campus" && listing.preview.campus
+                ? `Only ${listing.preview.campus} students can chat about this listing.`
+                : "You can't chat about this listing."}
+            </Text>
+          ) : (
+            <View className="flex-1">
+              <Button label="Sign in to chat" onPress={() => router.push("/welcome")} />
+            </View>
+          )
+        ) : mine ? (
           <OwnerActions listing={listing} onChanged={reload} />
         ) : (
           <>
@@ -316,6 +436,21 @@ export default function ListingPage() {
         ]}
       />
       <ReportMenu target={reporting} onClose={() => setReporting(null)} />
+      <Menu
+        visible={sharing}
+        onClose={() => setSharing(false)}
+        options={[
+          { label: "Share link", onPress: () => shareLink(listing) },
+          {
+            label: "Show QR code",
+            onPress: () => {
+              track("share", { listing_id: listing.id, method: "qr" });
+              setQr(true);
+            },
+          },
+        ]}
+      />
+      <QrSheet listing={qr ? listing : null} subtitle={priceLabel(listing)} onClose={() => setQr(false)} />
     </View>
   );
 }
@@ -404,15 +539,18 @@ function Seller({ listing }: { listing: Listing }) {
   );
 }
 
+function priceLabel(listing: Listing) {
+  const available = listing.items.filter((i) => i.status === "available");
+  return listing.kind === "wanted"
+    ? `Budget ${formatPrice(listing.budget_cents ?? 0)}`
+    : listing.kind === "item"
+      ? formatPrice(listing.items[0].price_cents)
+      : `From ${formatPrice(Math.min(...(available.length ? available : listing.items).map((i) => i.price_cents)))}`;
+}
+
 function Summary({ listing }: { listing: Listing }) {
   const item = listing.kind === "item" ? listing.items[0] : null;
-  const available = listing.items.filter((i) => i.status === "available");
-  const price =
-    listing.kind === "wanted"
-      ? `Budget ${formatPrice(listing.budget_cents ?? 0)}`
-      : item
-        ? formatPrice(item.price_cents)
-        : `From ${formatPrice(Math.min(...(available.length ? available : listing.items).map((i) => i.price_cents)))}`;
+  const price = priceLabel(listing);
   const chips = [
     item ? conditionLabel(item.condition) : null,
     item?.negotiable ? "Open to offers" : null,
@@ -464,7 +602,8 @@ function StatusBadge({ label }: { label: string }) {
   );
 }
 
-// Buyers tick available items to ask about them together; picked is null for the owner.
+// Buyers tick available items to ask about them together; picked is null for the owner and on a shared
+// preview.
 function SaleItems({
   listing,
   picked,

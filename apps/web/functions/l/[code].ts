@@ -44,7 +44,7 @@ const PAYMENTS: Record<string, string> = {
   cash_app: "Cash App",
   other: "Other (discuss in chat)",
 };
-const PACKAGE = "com.sigmobileuiuc.campusmarket";
+const PACKAGE = "trade.campusmarket.app";
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 

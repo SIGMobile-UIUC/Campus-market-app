@@ -14,6 +14,10 @@ import { Button } from "@/ui/Button";
 import { ThemeProvider } from "@/ui/theme";
 import { Toaster } from "@/ui/Toast";
 
+// Links that open a screen directly (share links, notifications) keep Home underneath, so Back leads
+// into the app instead of out of it.
+export const unstable_settings = { anchor: "(tabs)" };
+
 export default function RootLayout() {
   return (
     <AccountProvider>
@@ -73,6 +77,10 @@ function Shell() {
             </Stack.Protected>
             <Stack.Protected guard={!!session && !!account && !onboarded}>
               <Stack.Screen name="(onboarding)" />
+            </Stack.Protected>
+            {/* Share links open signed out too; a new account goes through onboarding first. */}
+            <Stack.Protected guard={!session || onboarded}>
+              <Stack.Screen name="l/[code]" />
             </Stack.Protected>
             <Stack.Protected guard={!!session && onboarded}>
               <Stack.Screen name="(tabs)" />

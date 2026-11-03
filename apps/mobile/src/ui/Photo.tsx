@@ -5,7 +5,8 @@ import type { StyleProp } from "react-native";
 import { forgetSignedUrl, signedUrl, type Bucket } from "@/lib/photoUrls";
 
 // A private photo by object path: blurhash while loading, cached by path (the URL changes, the path
-// never does), and one retry with a fresh URL when a cached one has expired.
+// never does), and one retry with a fresh URL when a cached one has expired. Shared previews (LST-11)
+// pass URLs that are already signed.
 export function Photo({
   path,
   bucket = "listing-photos",
@@ -21,12 +22,14 @@ export function Photo({
 }) {
   const [url, setUrl] = useState<{ path: string; url: string | null } | null>(null);
   const [retried, setRetried] = useState(false);
+  const signed = path.startsWith("https://");
 
   useEffect(() => {
+    if (signed) return;
     void signedUrl(path, bucket).then((next) => setUrl({ path, url: next }));
-  }, [path, bucket, retried]);
+  }, [path, bucket, retried, signed]);
 
-  const current = url?.path === path ? url.url : null;
+  const current = signed ? path : url?.path === path ? url.url : null;
   return (
     <Image
       source={current ? { uri: current, cacheKey: path } : null}

@@ -8,18 +8,26 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "bundleIdentifier": "com.sigmobileuiuc.campusmarket",
+      "bundleIdentifier": "trade.campusmarket.app",
       "supportsTablet": false
     },
     "android": {
-      "package": "com.sigmobileuiuc.campusmarket",
+      "package": "trade.campusmarket.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#F87A2E",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [{ "scheme": "https", "host": "campusmarket.trade", "pathPrefix": "/l/" }],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "googleServicesFile": "./google-services.json"
     },
     "plugins": [
@@ -35,7 +43,8 @@
           "microphonePermission": false
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true

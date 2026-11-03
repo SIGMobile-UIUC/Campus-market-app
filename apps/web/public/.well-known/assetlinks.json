@@ -3,8 +3,8 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.sigmobileuiuc.campusmarket",
-      "sha256_cert_fingerprints": ["41:4E:6F:E6:C8:3C:A5:C2:4F:5D:F4:5D:0A:7D:BB:74:F8:13:86:7D:96:16:7D:FA:E4:D2:D9:CD:04:51:94:6C"]
+      "package_name": "trade.campusmarket.app",
+      "sha256_cert_fingerprints": ["C7:2F:C0:97:4D:F7:7D:E9:28:63:97:9C:E3:75:45:FA:6A:F4:4A:2F:29:71:97:92:F6:8E:64:94:BF:39:B3:0A"]
     }
   }
 ]

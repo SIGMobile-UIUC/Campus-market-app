@@ -439,30 +439,31 @@ The size follows the large secondhand marketplaces, which use 14 to 20 top-level
 
 | # | Category | Subcategories |
 | --- | --- | --- |
-| 1 | Furniture | Desks, Chairs, Bed frames and mattresses, Couches and seating, Tables, Shelves and bookcases, Dressers and wardrobes |
-| 2 | Appliances | Mini fridges, Microwaves, Fans and heaters, Air purifiers and humidifiers, Vacuums, TVs |
-| 3 | Kitchen | Kettles and coffee makers, Rice cookers and air fryers, Cookware, Dishes and utensils, Food storage |
-| 4 | Bedding and bath | Sheets and comforters, Mattress toppers, Pillows, Towels, Shower caddies |
-| 5 | Decor and storage | Lamps and lighting, Rugs and curtains, Mirrors, Wall decor, Storage bins and organizers, Laundry hampers and drying racks |
-| 6 | Electronics | Laptops, Tablets, Monitors, Phones, Headphones and speakers, Cameras, Chargers and accessories |
-| 7 | Video games | Consoles, Games, Controllers and accessories, VR |
-| 8 | Textbooks | By course code, Lab manuals, Study guides and test prep |
-| 9 | School and office supplies | Calculators, Lab gear, Backpacks, Printers, Notebooks and stationery |
-| 10 | Women's clothing | Tops, Bottoms, Dresses, Outerwear, Activewear, Formal wear |
-| 11 | Men's clothing | Tops, Bottoms, Outerwear, Activewear, Suits and formal wear |
-| 12 | Shoes, bags and accessories | Sneakers, Boots, Bags, Jewelry, Watches, Hats |
-| 13 | Campus gear | Jerseys and spirit wear, Game day and tailgate, Club and Greek merch |
-| 14 | Bikes and scooters | Bikes, E-scooters and e-bikes, Skateboards, Locks, Helmets and lights |
-| 15 | Sports and outdoors | Gym equipment, Rackets and balls, Yoga and fitness, Camping and hiking, Winter sports |
-| 16 | Music | Instruments, Amps and audio gear, DJ and production gear, Vinyl and CDs |
-| 17 | Hobbies and games | Board games and puzzles, Art supplies, Crafts, Books other than textbooks, Collectibles |
-| 18 | Beauty and personal care | Hair tools, Skincare and makeup (unopened), Fragrance, Grooming |
-| 19 | Pet supplies | Tanks and cages, Beds and toys, Feeders and bowls |
-| 20 | Plants | Houseplants, Pots and planters |
+| 1 | Furniture | Desks, Chairs, Bed frames and mattresses, Couches and seating, Tables, Shelves and bookcases, Dressers and wardrobes, Nightstands and side tables, TV stands and media consoles, Futons and sofa beds, Bean bags and floor seating, Ottomans and benches, Outdoor and patio, Other |
+| 2 | Appliances | Mini fridges, Microwaves, Fans and heaters, Air purifiers and humidifiers, Vacuums, TVs, Air conditioners, Washers and dryers, Irons and steamers, Sewing machines, Other |
+| 3 | Kitchen | Kettles and coffee makers, Rice cookers and air fryers, Cookware, Dishes and utensils, Food storage, Blenders and mixers, Toasters and toaster ovens, Bakeware, Knives and cutting boards, Glassware and drinkware, Other |
+| 4 | Bedding and bath | Sheets and comforters, Mattress toppers, Pillows, Towels, Shower caddies, Blankets and throws, Bath mats and shower curtains, Bathroom organizers, Other |
+| 5 | Decor and storage | Lamps and lighting, Rugs and curtains, Mirrors, Wall decor, Storage bins and organizers, Laundry hampers and drying racks, Clocks, Picture frames, Closet organizers and hangers, Holiday decor, Cleaning tools, Other |
+| 6 | Electronics | Laptops, Tablets, Monitors, Phones, Headphones and speakers, Cameras, Chargers and accessories, Desktop computers, Keyboards and mice, Computer parts and storage, E-readers, Smartwatches and wearables, Projectors, Routers and networking, Other |
+| 7 | Video games | Consoles, Games, Controllers and accessories, VR, Handheld consoles, Gaming headsets, Retro games, Other |
+| 8 | Textbooks | By course code, Lab manuals, Study guides and test prep, Reference books, Language learning, Other |
+| 9 | School and office supplies | Calculators, Lab gear, Backpacks, Printers, Notebooks and stationery, Drafting and design tools, Desk accessories, Whiteboards and bulletin boards, Planners and calendars, Other |
+| 10 | Women's clothing | Tops, Bottoms, Dresses, Outerwear, Activewear, Formal wear, Sweaters and hoodies, Jumpsuits and rompers, Swimwear, Loungewear, Other |
+| 11 | Men's clothing | Tops, Bottoms, Outerwear, Activewear, Suits and formal wear, Sweaters and hoodies, Swimwear, Loungewear, Other |
+| 12 | Shoes, bags and accessories | Sneakers, Boots, Bags, Jewelry, Watches, Hats, Dress shoes, Sandals and slides, Wallets, Belts, Sunglasses, Scarves and gloves, Other |
+| 13 | Campus gear | Jerseys and spirit wear, Game day and tailgate, Club and Greek merch, Graduation caps and gowns, Pennants and flags, Other |
+| 14 | Bikes and scooters | Bikes, E-scooters and e-bikes, Skateboards, Locks, Helmets and lights, Kick scooters, Roller skates and blades, Bike parts, Bike accessories, Other |
+| 15 | Sports and outdoors | Gym equipment, Rackets and balls, Yoga and fitness, Camping and hiking, Winter sports, Team sports, Running, Golf, Water sports, Climbing, Fishing, Other |
+| 16 | Music | Instruments, Amps and audio gear, DJ and production gear, Vinyl and CDs, Instrument accessories, Sheet music and books, Turntables, Other |
+| 17 | Hobbies and games | Board games and puzzles, Art supplies, Crafts, Books other than textbooks, Collectibles, Trading cards, Building sets, Models and RC, Toys and plush, Movies and TV, Other |
+| 18 | Beauty and personal care | Hair tools, Skincare and makeup (unopened), Fragrance, Grooming, Nail care, Bath and body (unopened), Massagers, Other |
+| 19 | Pet supplies | Tanks and cages, Beds and toys, Feeders and bowls, Leashes and collars, Carriers and crates, Grooming, Other |
+| 20 | Plants | Houseplants, Pots and planters, Plant stands, Grow lights, Gardening tools, Other |
 | 21 | Other | Party and costumes, Everything else |
 
 - Not a category because policy prohibits them (section 2.2): tickets, housing and subleases, live animals, alcohol, gift cards and digital codes, and adult items in the MVP. Cars and motorcycles are out of scope for the MVP: a title transfer goes beyond a meetup trade.
 - Home shows the first nine categories in the campus's current order plus More; the Categories tab shows all of them with their subcategories.
+- Every category but Other ends with an Other subcategory, so an item that fits the category but none of its subcategories stays findable there.
 - The list lives in `app_config.categories` as `{ categories: [{ id, label, icon, subcategories: [{ id, label }] }] }` with lucide icon names, so it changes without an app release. Prohibited keywords per subcategory join it with the text filter (DB-6).
 - Each campus can reorder categories for the season (move-in and move-out: Furniture, Appliances, Kitchen, Bedding and bath first; start of term: Textbooks, School and office supplies first) without changing the list itself.
 - 18+ games are not allowed in Video games in the MVP (section 2.3).

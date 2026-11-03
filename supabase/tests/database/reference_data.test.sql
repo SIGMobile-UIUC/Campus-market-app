@@ -1,7 +1,7 @@
 -- Categories, rule values and ZIP codes shipped by migrations (spec 1.7.5, 5.6, 5.3.2).
 begin;
 \ir _helpers.psql
-select plan(11);
+select plan(12);
 
 create temp view categories as
 select c from public.app_config, jsonb_array_elements(value -> 'categories') as c where key = 'categories';
@@ -14,6 +14,11 @@ select is_empty(
         or (select count(distinct s ->> 'id') from jsonb_array_elements(c -> 'subcategories') s)
            <> jsonb_array_length(c -> 'subcategories') $$,
   'every category has subcategories with unique ids'
+);
+select is_empty(
+  $$ select c ->> 'id' from categories
+     where c ->> 'id' <> 'other' and c #>> '{subcategories,-1,id}' <> 'other' $$,
+  'every category but Other ends with Other'
 );
 
 select is(

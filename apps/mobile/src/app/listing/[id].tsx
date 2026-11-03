@@ -17,7 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAccount } from "@/features/account/account";
 import { openChat } from "@/features/chat/api";
 import { Avatar, type Loadout } from "@/features/avatar/Avatar";
-import { QrSheet, shareLink } from "@/features/listings/share";
+import { QrSheet, reopenAfterSignIn, shareLink } from "@/features/listings/share";
 import { conditionLabel, hiddenNote, paymentLabel } from "@/features/listings/types";
 import { confirmBlock, ReportMenu, type ReportTarget } from "@/features/moderation/moderation";
 import { fetchProfile, replyLabel, tradesLabel, type PublicProfile } from "@/features/profile/profile";
@@ -162,23 +162,12 @@ async function fetchPreview(code: string): Promise<Listing | null | "failed"> {
   };
 }
 
-// Signing in from a shared preview rebuilds the navigation state without Home and without the route
-// params (expo-router, with the root anchor and protected routes), so the page reopens the link on top
-// of Home.
-let lastCode: string | undefined;
-
 // Listing page (spec 3.3), also opened by share links at /l/<code> (LST-11): a listing the viewer may
 // not see, or any listing while signed out, shows read-only from its public preview. The seller row
 // shows their trade count and reply time and opens their profile (APP-21); the meetup map and similar
 // items (DSC-6) are P1.
 export default function ListingPage() {
   const { id, code } = useLocalSearchParams<{ id?: string; code?: string }>();
-  useEffect(() => {
-    if (code) lastCode = code;
-    if (id || code || !lastCode) return;
-    router.replace("/");
-    router.push({ pathname: "/l/[code]", params: { code: lastCode } });
-  }, [id, code]);
   const { session } = useAccount();
   const insets = useSafeAreaInsets();
   const [listing, setListing] = useState<Listing | null | "failed" | undefined>(undefined);
@@ -224,7 +213,6 @@ export default function ListingPage() {
   useFocusEffect(
     useCallback(() => {
       let alive = true;
-      if (!id && !code) return;
       void fetchListing(code ? { code } : { id: id! }, signedIn).then((result) => {
         if (!alive) return;
         setListing(result.listing);
@@ -381,7 +369,13 @@ export default function ListingPage() {
             </Text>
           ) : (
             <View className="flex-1">
-              <Button label="Sign in to chat" onPress={() => router.push("/welcome")} />
+              <Button
+                label="Sign in to chat"
+                onPress={() => {
+                  reopenAfterSignIn(listing.share_code);
+                  router.push("/welcome");
+                }}
+              />
             </View>
           )
         ) : mine ? (

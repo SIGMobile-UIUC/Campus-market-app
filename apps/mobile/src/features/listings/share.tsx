@@ -12,6 +12,17 @@ export const shareUrl = (code: string) => `https://campusmarket.trade/l/${code}`
 
 type Shared = { id: string; share_code: string; title: string };
 
+// Signing in from a shared preview lands on Home, which then reopens the listing.
+let pendingCode: string | null = null;
+export const reopenAfterSignIn = (code: string) => {
+  pendingCode = code;
+};
+export function takePendingShare() {
+  const code = pendingCode;
+  pendingCode = null;
+  return code;
+}
+
 export function shareLink(listing: Shared) {
   track("share", { listing_id: listing.id, method: "link" });
   void Share.share({ message: shareUrl(listing.share_code) });

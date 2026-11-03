@@ -2782,7 +2782,7 @@ PostgREST returns HTTP 400 with `{ "code": "P0001", "message": "ITEM_UNAVAILABLE
 | `my_account_status()` (with appeals, P1) | none | `{ penalties[], active_actions[] }` (`appealable[]` from P1); until then the app reads its own `enforcement_actions` and `penalties` rows | |
 | `log_events(events)` | jsonb: `[{event_id, name, occurred_at, session_id, screen, props, context}]`, at most 50 | `{ accepted }`; events with an unknown name or prop are skipped | `FORBIDDEN` (no analytics consent), `VALIDATION_FAILED` (not an array, or over 50), `RATE_LIMITED` (1,000 per hour) |
 
-Sign-in uses Supabase Auth directly (`signInWithOtp` with `shouldCreateUser: true`, then `verifyOtp`). The Before User Created hook returns these messages to the app: `EMAIL_NOT_ALLOWED` (disposable domain), `PLUS_ADDRESS_NOT_ALLOWED`, `REGISTRATION_BLOCKED`.
+Sign-in uses Supabase Auth directly (`signInWithOtp` with `shouldCreateUser: true`, then `verifyOtp`). Codes expire after 10 minutes, and one address gets one code per 60 seconds. The Before User Created hook returns these messages to the app: `EMAIL_NOT_ALLOWED` (disposable domain), `PLUS_ADDRESS_NOT_ALLOWED`, `REGISTRATION_BLOCKED`.
 
 ### 6.4 Listings
 

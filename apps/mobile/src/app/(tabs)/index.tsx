@@ -1,5 +1,6 @@
 import { router } from "expo-router";
 import { Bell, Globe, Search } from "lucide-react-native";
+import { useEffect } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -7,6 +8,7 @@ import { useAccount } from "@/features/account/account";
 import { MODES } from "@/features/catalog/catalog";
 import { categoryIcon, useCategories } from "@/features/catalog/categories";
 import { ResultsGrid } from "@/features/listings/ResultsGrid";
+import { takePendingShare } from "@/features/listings/share";
 import { MarketChips, useScope } from "@/features/listings/Toolbar";
 import { toCard, type Filters } from "@/features/listings/types";
 import { useOfferCounts, WantedCard } from "@/features/listings/WantedCard";
@@ -25,6 +27,12 @@ export default function Home() {
   const scope = useScope();
   const { categories } = useCategories();
   const newest = useListings({ scope });
+
+  // Back from signing in on a shared preview (LST-11): open that listing again.
+  useEffect(() => {
+    const code = takePendingShare();
+    if (code) router.push({ pathname: "/l/[code]", params: { code } });
+  }, []);
 
   return (
     <View className="flex-1 bg-bg" style={{ paddingTop: insets.top }}>

@@ -78,10 +78,6 @@ function Shell() {
             <Stack.Protected guard={!!session && !!account && !onboarded}>
               <Stack.Screen name="(onboarding)" />
             </Stack.Protected>
-            {/* Share links open signed out too; a new account goes through onboarding first. */}
-            <Stack.Protected guard={!session || onboarded}>
-              <Stack.Screen name="l/[code]" />
-            </Stack.Protected>
             <Stack.Protected guard={!!session && onboarded}>
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="post" />
@@ -116,6 +112,11 @@ function Shell() {
                   sheetAllowedDetents: "fitToContents",
                 }}
               />
+            </Stack.Protected>
+            {/* Share links open signed out too; a new account goes through onboarding first. After the
+                groups above, because signing in lands on the first screen that is open. */}
+            <Stack.Protected guard={!session || onboarded}>
+              <Stack.Screen name="l/[code]" />
             </Stack.Protected>
           </Stack>
         </ChatProvider>

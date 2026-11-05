@@ -14,7 +14,17 @@ export type Message = {
   kind: "text" | "image" | "system";
   body: string | null;
   image_path: string | null;
-  meta: { event?: string; status?: string; user_id?: string; trade_id?: string; hidden?: boolean } | null;
+  meta: {
+    event?: string;
+    status?: string;
+    user_id?: string;
+    trade_id?: string;
+    hidden?: boolean;
+    // Coin flips (CHT-9): the flip, and once flipped the call and the result.
+    flip_id?: string;
+    call?: CoinSide;
+    result?: CoinSide;
+  } | null;
   client_id: string;
   created_at: string;
 };
@@ -172,11 +182,20 @@ const TRADE_TEXT: Record<string, string> = {
   failed: "Trade failed",
 };
 
-// What a system message says, for the timeline and the list preview. Trade steps are one line here;
-// the trade card shows the current state.
+export type CoinSide = "heads" | "tails";
+export const sideLabel = (side?: CoinSide) => (side === "tails" ? "Tails" : "Heads");
+
+// What a system message says, for the timeline and the list preview. Trade steps and coin flips are one
+// line here; their cards show the current state.
 export function systemText(meta: Message["meta"], myId: string, partnerName: string): string {
   const who = meta?.user_id === myId ? "You" : partnerName;
   if (meta?.event === "left") return `${who} left the chat`;
+  if (meta?.event === "coin_flip") {
+    if (meta.status === "flipped")
+      return `${who} called ${sideLabel(meta.call)}. It's ${sideLabel(meta.result)}!`;
+    if (meta.status === "cancelled") return `${who} cancelled the coin flip`;
+    return `${who} proposed a coin flip`;
+  }
   if (meta?.status === "confirmed") return `${who} marked the trade completed`;
   return TRADE_TEXT[meta?.status ?? ""] ?? "Update";
 }

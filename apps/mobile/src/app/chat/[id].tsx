@@ -20,6 +20,7 @@ import { MessageBubble, SafetyTips } from "@/features/chat/MessageBubble";
 import { useChatRoom, type Pending } from "@/features/chat/useChatRoom";
 import { confirmBlock, ReportMenu, type ReportTarget } from "@/features/moderation/moderation";
 import { TradeCard } from "@/features/trades/TradeCard";
+import { CoinFlipCard, proposeCoinFlip } from "@/features/chat/CoinFlipCard";
 import { formatPrice } from "@/lib/format";
 import { pickPhotos } from "@/lib/media";
 import { enablePush } from "@/lib/push";
@@ -100,6 +101,10 @@ export default function ChatRoom() {
   const latestStep = new Map(
     messages.flatMap((m) => (m.meta?.trade_id ? [[m.meta.trade_id, m.seq] as const] : [])),
   );
+  // Coin flips likewise; a cancelled one stays a line.
+  const latestFlip = new Map(
+    messages.flatMap((m) => (m.meta?.flip_id ? [[m.meta.flip_id, m.seq] as const] : [])),
+  );
   const entries: Entry[] = [
     ...[...pending].reverse().map((p) => ({ key: p.client_id, pending: p })),
     ...[...messages].reverse().map((m) => ({ key: String(m.seq), message: m })),
@@ -149,6 +154,10 @@ export default function ChatRoom() {
             (!newer ||
               newer.sender_id !== m.sender_id ||
               new Date(newer.created_at).getTime() - new Date(m.created_at).getTime() > 5 * 60_000);
+          const flipId = m?.meta?.flip_id;
+          if (m?.meta && flipId && latestFlip.get(flipId) === m.seq && m.meta.status !== "cancelled") {
+            return <CoinFlipCard meta={m.meta} myId={myId} partnerName={partnerName} />;
+          }
           const tradeId = m?.meta?.trade_id;
           if (m && tradeId && latestStep.get(tradeId) === m.seq && trades[tradeId]) {
             return (
@@ -187,7 +196,11 @@ export default function ChatRoom() {
           ) : null}
         </View>
       ) : (
-        <Composer onSend={(body) => send({ kind: "text", body })} onPhoto={() => setMenu("photo")} />
+        <Composer
+          onSend={(body) => send({ kind: "text", body })}
+          onPhoto={() => setMenu("photo")}
+          onFlip={() => void proposeCoinFlip(id)}
+        />
       )}
       <Menu
         visible={menu === "chat"}
@@ -314,7 +327,15 @@ function ListingStrip({ room, canPropose }: { room: Room; canPropose: boolean })
   );
 }
 
-function Composer({ onSend, onPhoto }: { onSend: (body: string) => void; onPhoto: () => void }) {
+function Composer({
+  onSend,
+  onPhoto,
+  onFlip,
+}: {
+  onSend: (body: string) => void;
+  onPhoto: () => void;
+  onFlip: () => void;
+}) {
   const { colors } = useTheme();
   const [text, setText] = useState("");
   const body = text.trim();
@@ -329,6 +350,7 @@ function Composer({ onSend, onPhoto }: { onSend: (body: string) => void; onPhoto
         {QUICK_REPLIES.map((reply) => (
           <Chip key={reply} label={reply} onPress={() => onSend(reply)} />
         ))}
+        <Chip label="Flip a coin" onPress={onFlip} />
       </ScrollView>
       <View className="flex-row items-end gap-2 px-3 pb-2">
         <Pressable

@@ -3,12 +3,12 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Alert, Linking, ScrollView, Text, View } from "react-native";
 
 import { useAccount } from "@/features/account/account";
+import { TERMS_VERSION } from "@/features/legal/documents";
 import { ContactLink } from "@/features/moderation/moderation";
 import { errorMessage } from "@/lib/errors";
 import { setAnalytics } from "@/lib/analytics";
 import { disablePush } from "@/lib/push";
 import { supabase } from "@/lib/supabase";
-import { TERMS_URL, TERMS_VERSION } from "@/lib/terms";
 import { Button } from "@/ui/Button";
 import { Header } from "@/ui/Header";
 import { TextLink } from "@/ui/TextLink";
@@ -110,7 +110,14 @@ export default function Settings() {
 
       <Section title="Help">
         <View className="items-start">
-          <TextLink label="Community rules and terms" onPress={() => void Linking.openURL(TERMS_URL)} />
+          <TextLink
+            label="Community rules and terms"
+            onPress={() => router.push({ pathname: "/legal/[doc]", params: { doc: "terms" } })}
+          />
+          <TextLink
+            label="Privacy Policy"
+            onPress={() => router.push({ pathname: "/legal/[doc]", params: { doc: "privacy" } })}
+          />
           <ContactLink />
         </View>
         <Text className="text-[13px] text-muted">

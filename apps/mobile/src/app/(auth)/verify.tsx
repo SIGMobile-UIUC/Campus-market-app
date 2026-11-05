@@ -23,11 +23,20 @@ export default function Verify() {
     return () => clearTimeout(timer);
   }, [wait]);
 
-  // On success the session changes and the root layout moves on to onboarding or Home.
+  // On success the session changes and the root layout moves on to onboarding or Home. The store review
+  // account signs in with a fixed code that review-sign-in trades for a real one.
   const verify = async (token: string) => {
     setBusy(true);
     setError(null);
-    const { error: verifyError } = await supabase.auth.verifyOtp({ email, token, type: "email" });
+    let { error: verifyError } = await supabase.auth.verifyOtp({ email, token, type: "email" });
+    if (verifyError) {
+      const { data } = await supabase.functions.invoke<{ token: string }>("review-sign-in", {
+        body: { email, code: token },
+      });
+      if (data?.token) {
+        ({ error: verifyError } = await supabase.auth.verifyOtp({ email, token: data.token, type: "email" }));
+      }
+    }
     setBusy(false);
     if (verifyError) {
       setError(errorMessage(verifyError));

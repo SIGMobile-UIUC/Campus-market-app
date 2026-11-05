@@ -8,7 +8,17 @@ import { sendMessage } from "@/features/chat/api";
 import { CONDITIONS, conditionLabel } from "@/features/listings/types";
 import { PhotoPicker } from "@/features/sell/PhotoPicker";
 import { proposeTrade } from "@/features/trades/api";
-import { loadSpots, meetupPayload, MeetupFields, NO_MEETUP, Section } from "@/features/trades/MeetupFields";
+import {
+  loadSpots,
+  MEETUP_STEPS,
+  meetupMissing,
+  meetupPayload,
+  MeetupFields,
+  NO_MEETUP,
+  Section,
+  useMissingGuide,
+  type MeetupStep,
+} from "@/features/trades/MeetupFields";
 import { errorMessage } from "@/lib/errors";
 import { formatPrice, parsePrice } from "@/lib/format";
 import { uploadChatPhoto } from "@/lib/media";
@@ -20,6 +30,13 @@ import { Header } from "@/ui/Header";
 import { Screen } from "@/ui/Screen";
 
 type Request = { id: string; title: string; budget_cents: number; campus_id: string | null };
+
+type Step = "name" | "price" | MeetupStep;
+const STEPS: Record<Step, [button: string, hint: string]> = {
+  name: ["Say what you offer", "Name the item you have."],
+  price: ["Set a price", "Enter a price like 25 or 25.50."],
+  ...MEETUP_STEPS,
+};
 
 async function load(listingId: string) {
   const { data } = await supabase
@@ -53,6 +70,7 @@ export default function Offer() {
     photos: [0, 1, 2].map(() => randomUUID()),
   }));
   const uploaded = useRef(new Map<string, string>());
+  const guide = useMissingGuide<Step>();
 
   useEffect(() => {
     void load(listingId).then(setContext);
@@ -80,7 +98,8 @@ export default function Offer() {
   const { request, spots } = context;
   const priceCents = parsePrice(price);
   const where = meetupPayload(meetup);
-  const ready = name.trim() !== "" && priceCents !== null && where !== null;
+  const missing: Step | null = !name.trim() ? "name" : priceCents === null ? "price" : meetupMissing(meetup);
+  const hint = (step: Step) => (guide.shown === step && missing === step ? STEPS[step][1] : null);
   const budgetHint =
     priceCents === null
       ? `Budget ${formatPrice(request.budget_cents)}`
@@ -89,7 +108,8 @@ export default function Offer() {
         : `${formatPrice(priceCents - request.budget_cents)} over the ${formatPrice(request.budget_cents)} budget`;
 
   const send = async () => {
-    if (!ready || !session) return;
+    if (missing) return guide.show(missing);
+    if (!session || !where || priceCents === null) return;
     setSending(true);
     let chatId = fromChat;
     if (!chatId) {
@@ -135,20 +155,30 @@ export default function Offer() {
       <Header title="Make an offer" />
       <Screen
         underHeader
-        footer={<Button label="Send offer" disabled={!ready || sending} onPress={() => void send()} />}
+        scrollRef={guide.scroll}
+        footer={
+          <Button
+            label={missing ? STEPS[missing][0] : "Send offer"}
+            disabled={sending}
+            onPress={() => void send()}
+          />
+        }
       >
         <View className="gap-0.5">
           <Text className="text-[13px] text-muted">Looking for</Text>
           <Text className="text-lg font-extrabold text-ink">{request.title}</Text>
         </View>
         <PhotoPicker uris={photos} onChange={setPhotos} max={3} />
-        <Field
-          label="What you offer"
-          value={name}
-          onChangeText={setName}
-          maxLength={80}
-          placeholder="TI-84 Plus"
-        />
+        <View onLayout={guide.at("name")}>
+          <Field
+            label="What you offer"
+            value={name}
+            onChangeText={setName}
+            maxLength={80}
+            placeholder="TI-84 Plus"
+            error={hint("name")}
+          />
+        </View>
         <Section label="Condition">
           <View className="flex-row flex-wrap gap-2">
             {CONDITIONS.map(([id, label]) => (
@@ -161,15 +191,26 @@ export default function Offer() {
             ))}
           </View>
         </Section>
-        <Field
-          label="Price"
-          value={price}
-          onChangeText={setPrice}
-          placeholder="$0"
-          keyboardType="decimal-pad"
-          hint={budgetHint}
+        <View onLayout={guide.at("price")}>
+          <Field
+            label="Price"
+            value={price}
+            onChangeText={setPrice}
+            placeholder="$0"
+            keyboardType="decimal-pad"
+            hint={budgetHint}
+            error={hint("price")}
+          />
+        </View>
+        <MeetupFields
+          spots={spots}
+          value={meetup}
+          onChange={setMeetup}
+          hint={
+            missing && guide.shown === missing && missing !== "name" && missing !== "price" ? missing : null
+          }
+          onLayout={guide.at}
         />
-        <MeetupFields spots={spots} value={meetup} onChange={setMeetup} />
       </Screen>
     </>
   );

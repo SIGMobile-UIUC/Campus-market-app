@@ -1,6 +1,11 @@
-# Campus Market Terms and Community Rules
+// The Terms and the Privacy Policy, shown in the app (legal/[doc]) and on campusmarket.trade/terms and
+// /privacy (apps/web), which import this file. A material change gets a new TERMS_VERSION, which the app
+// stores with the user's consent.
+export const TERMS_VERSION = "2026-10";
 
-Version 2026-10 (the version the app records when you accept). **Draft for team review before the public beta; not yet reviewed by a lawyer.** Items marked *Decision* need a team decision before release.
+export const TERMS = `# Terms and Community Rules
+
+Version ${TERMS_VERSION}
 
 ## 1. What Campus Market is
 
@@ -10,8 +15,8 @@ Campus Market is a place for buyers and sellers to find each other. **We are not
 
 ## 2. Your account
 
-- You must be at least 18 years old to use Campus Market. *Decision: confirm 18+, which other meetup marketplaces require, or allow 13 to 17 with a parent's permission.*
-- You sign in with a one-time code sent to your email. One email can hold one account. Addresses with `+` and temporary email services cannot be used.
+- You must be at least 18 years old to use Campus Market.
+- You sign in with a one-time code sent to your email. One email can hold one account. Addresses with + and temporary email services cannot be used.
 - A school email from a participating school places you in that school's campus market. If your school email stops working after you leave school, you lose access to the campus market and can use the open market with another email.
 - Your nickname is public; your email address and real name are never shown to other users. Do not choose a nickname that impersonates someone or that our rules prohibit.
 - You are responsible for activity on your account. Tell us at the contact address below if you think someone else has accessed it.
@@ -22,6 +27,7 @@ Campus Market is a place for buyers and sellers to find each other. **We are not
 - A trade is agreed in chat with a price, time and place. Meet at a public place, such as the meetup spots suggested in each trade, and inspect the item before you pay.
 - Confirm a trade as completed only after the exchange happens. Unconfirmed trades complete automatically 72 hours after the meetup time unless someone reports a problem.
 - Cancel as early as you can if plans change. Cancelling an accepted trade close to the meetup time adds a penalty point.
+- A coin flip in chat is a convenience for settling small choices between the two of you. Its result binds no one, and it can never be used for wagers or prizes.
 
 ## 4. Prohibited items
 
@@ -82,13 +88,7 @@ You keep ownership of the photos and text you post. You give Campus Market a non
 
 ## 11. Privacy
 
-- During sign-up you choose whether to share usage data to improve the app and whether to allow personalized deals. You can change both choices anytime in Settings.
-- Data shared outside Campus Market is only ever de-identified aggregates; we commit not to try to re-identify it.
-- Photos of sold or closed listings, chats both sides have left, and dispute evidence are deleted on fixed schedules.
-- You can delete your account in the app. Your personal data is then removed; trades, reviews and messages you took part in remain and show "Deleted user".
-- We may disclose account information in response to a subpoena, court order, search warrant or other valid legal process, and when we believe in good faith that disclosure is necessary to prevent imminent physical harm.
-
-A separate privacy policy with the full details is required before the public beta.
+How we collect, use, keep and share your data is described in our Privacy Policy, which is part of these Terms.
 
 ## 12. Disclaimers and limits
 
@@ -97,5 +97,69 @@ Campus Market is provided "as is". We do not guarantee that the service will alw
 ## 13. Changes and contact
 
 - We may update these Terms. We tell you in the app before material changes take effect.
-- These Terms are governed by the laws of the State of Illinois. *Decision: confirm with the school or club.*
-- Contact: *Decision: publish a contact address before release.*
+- These Terms are governed by the laws of the State of Illinois.
+- Contact: campusmarketsupports@gmail.com
+`;
+
+export const PRIVACY = `# Privacy Policy
+
+Version ${TERMS_VERSION}
+
+This policy explains what Campus Market collects, why, how long we keep it and who sees it. Campus Market is run by a student team. Contact us at campusmarketsupports@gmail.com.
+
+## 1. What we collect
+
+- **Account:** your sign-in email, the school it belongs to, your nickname, avatar and the choices you make in Settings. Your email is never shown to other users.
+- **What you post:** listings and their photos, chat messages and photos, reviews, reports and dispute statements. We remove location data from photos before they are uploaded.
+- **Trades:** the items, price, meetup time and place, and each step of the trade, which we need to run trades, trust grades and points.
+- **Device:** a push notification token if you allow notifications, and the app version, platform and OS version.
+- **Usage (only if you allow it):** what you view, search and tap in the app, under a pseudonymous id that is not your account id. You choose this at sign-up and can turn it off in Settings.
+- **Location (only when you ask):** an optional check-in when you tap "I'm here" at a meetup, used only for that trade and its dispute.
+
+We do not collect advertising identifiers, contacts, precise or background location, or data from other apps and websites, and we do not use third-party analytics or advertising SDKs.
+
+## 2. How we use it
+
+- To run the service: sign-in, campus markets, listings, chat, trades, reviews, trust grades, points and notifications.
+- To keep the community safe: moderation, reports, disputes and enforcement.
+- To improve the app, from usage data of people who allow it.
+- To show deals matched to your interests, only if you allow personalized deals.
+
+## 3. Who sees it
+
+- **Other users** see your nickname, avatar, school badge, trust grade, reviews and what you post. The other side of a trade sees the trade details and your chat.
+- **Our team** sees data only as their role needs. Reported chats, dispute evidence and check-ins are opened only for an open case, and each view is logged.
+- **Service providers** that run the app for us: Supabase (database, sign-in and file storage), Cloudflare (website), Resend (sign-in emails), and Expo, Google and Apple (push notifications). They process data only on our behalf.
+- **Aggregates:** anything shared outside Campus Market is de-identified aggregate data, built only from people who allow usage data, with every group covering at least 20 people. We commit not to try to re-identify it, and recipients must agree to the same.
+- **Legal requests:** we disclose account information only in response to valid legal process, or when we believe in good faith that it is necessary to prevent imminent physical harm, and we tell you unless the law forbids it.
+
+We do not sell your personal data.
+
+## 4. How long we keep it
+
+- Account and email: until you delete your account.
+- Chat messages: 7 days after both sides have left the chat. Chat photos: 1 year after the chat's last message, or sooner with the chat.
+- Listing photos: while the listing is active; deleted 30 days after it sells out or is deleted, and 90 days after it is closed. Only a small cover thumbnail of a sold or closed listing stays.
+- Meetup check-ins and dispute evidence: 30 days after the trade or dispute is closed.
+- Usage data: 12 months; aggregates without a limit.
+- Enforcement records: 3 years.
+
+## 5. Your choices
+
+- Turn usage data and personalized deals on or off anytime in Settings.
+- Turn notifications on or off in your phone's settings.
+- Delete your account anytime in Settings. Your personal data is then removed; trades, reviews and messages you took part in remain and show "Deleted user".
+- Ask us for a copy or a correction of your data at the contact address above.
+
+## 6. Children
+
+Campus Market is for people aged 18 and over. We do not knowingly collect data from anyone younger.
+
+## 7. Security
+
+Data is encrypted in transit and access is limited by role. Photos and chats are private files reachable only through short-lived links.
+
+## 8. Changes
+
+We tell you in the app before material changes to this policy take effect.
+`;

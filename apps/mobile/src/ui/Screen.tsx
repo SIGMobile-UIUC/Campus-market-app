@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode, type Ref } from "react";
 import { Keyboard, Platform, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -28,12 +28,15 @@ export function Screen({
   children,
   footer,
   underHeader = false,
+  scrollRef,
 }: {
   title?: string;
   subtitle?: string;
   children?: ReactNode;
   footer?: ReactNode;
   underHeader?: boolean;
+  // For screens that scroll to a field, such as a send button pointing at a missing step.
+  scrollRef?: Ref<ScrollView>;
 }) {
   const insets = useSafeAreaInsets();
   const keyboard = useKeyboardHeight();
@@ -45,6 +48,7 @@ export function Screen({
   return (
     <View className="flex-1 bg-bg">
       <ScrollView
+        ref={scrollRef}
         className="flex-1"
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{

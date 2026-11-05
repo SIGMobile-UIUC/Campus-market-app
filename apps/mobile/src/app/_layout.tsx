@@ -113,11 +113,13 @@ function Shell() {
                 }}
               />
             </Stack.Protected>
-            {/* Share links open signed out too; a new account goes through onboarding first. After the
-                groups above, because signing in lands on the first screen that is open. */}
+            {/* Share links open signed out too; a new account goes through onboarding first. The legal
+                documents open from sign-up and Settings. Both come after the groups above, because
+                signing in lands on the first screen that is open. */}
             <Stack.Protected guard={!session || onboarded}>
               <Stack.Screen name="l/[code]" />
             </Stack.Protected>
+            <Stack.Screen name="legal/[doc]" />
           </Stack>
         </ChatProvider>
       )}

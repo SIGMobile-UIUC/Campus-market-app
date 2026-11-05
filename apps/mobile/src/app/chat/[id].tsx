@@ -156,7 +156,9 @@ export default function ChatRoom() {
               new Date(newer.created_at).getTime() - new Date(m.created_at).getTime() > 5 * 60_000);
           const flipId = m?.meta?.flip_id;
           if (m?.meta && flipId && latestFlip.get(flipId) === m.seq && m.meta.status !== "cancelled") {
-            return <CoinFlipCard meta={m.meta} myId={myId} partnerName={partnerName} />;
+            return (
+              <CoinFlipCard meta={m.meta} myId={myId} partnerName={partnerName} postedAt={m.created_at} />
+            );
           }
           const tradeId = m?.meta?.trade_id;
           if (m && tradeId && latestStep.get(tradeId) === m.seq && trades[tradeId]) {

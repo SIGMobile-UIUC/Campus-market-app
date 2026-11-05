@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { useRef, useState, type ReactNode } from "react";
+import { ScrollView, Text, View, type LayoutChangeEvent } from "react-native";
 
 import { supabase } from "@/lib/supabase";
 import { Chip } from "@/ui/Chip";
@@ -17,6 +17,11 @@ function dayStart(offset: number) {
   d.setDate(d.getDate() + offset);
   return d;
 }
+// Today offers only times at least 15 minutes ahead.
+function timesFor(day: number) {
+  const now = new Date();
+  return TIMES.filter((m) => day !== 0 || m > now.getHours() * 60 + now.getMinutes() + 15);
+}
 const dayLabel = (offset: number) =>
   offset === 0
     ? "Today"
@@ -31,11 +36,54 @@ const timeLabel = (minutes: number) =>
 
 // The proposal fields for propose_trade, or null until a time and a place are chosen.
 export function meetupPayload(m: Meetup) {
-  if (m.day === null || m.time === null || (m.spot === null && !m.place.trim())) return null;
+  if (meetupMissing(m)) return null;
   return {
-    meet_at: new Date(dayStart(m.day).getTime() + m.time * 60_000).toISOString(),
+    meet_at: new Date(dayStart(m.day!).getTime() + m.time! * 60_000).toISOString(),
     spot_id: m.spot,
     place_text: m.spot ? null : m.place.trim(),
+  };
+}
+
+// A meetup from an earlier proposal, when its time still fits the choices (a counter offer).
+export function meetupFrom(meetAt: string, spot: string | null, place: string | null): Meetup {
+  const at = new Date(meetAt);
+  const day = Math.round((new Date(at).setHours(0, 0, 0, 0) - dayStart(0).getTime()) / 86_400_000);
+  const time = at.getHours() * 60 + at.getMinutes();
+  const fits = day >= 0 && day < 7 && timesFor(day).includes(time);
+  return { day: fits ? day : null, time: fits ? time : null, spot, place: spot ? "" : (place ?? "") };
+}
+
+export type MeetupStep = "day" | "time" | "place";
+export function meetupMissing(m: Meetup): MeetupStep | null {
+  return m.day === null
+    ? "day"
+    : m.time === null
+      ? "time"
+      : m.spot === null && !m.place.trim()
+        ? "place"
+        : null;
+}
+export const MEETUP_STEPS: Record<MeetupStep, [button: string, hint: string]> = {
+  day: ["Pick a day", "Pick the day you'll meet."],
+  time: ["Pick a time", "Pick a time on that day."],
+  place: ["Pick a place", "Pick a spot or type a busy public place."],
+};
+
+// A send button that names the first missing step; pressed, it scrolls to that step and says what to do.
+export function useMissingGuide<K extends string>() {
+  const scroll = useRef<ScrollView>(null);
+  const positions = useRef<Partial<Record<K, number>>>({});
+  const [shown, setShown] = useState<K | null>(null);
+  return {
+    scroll,
+    shown,
+    at: (key: K) => (e: LayoutChangeEvent) => {
+      positions.current[key] = e.nativeEvent.layout.y;
+    },
+    show: (key: K) => {
+      setShown(key);
+      scroll.current?.scrollTo({ y: Math.max(0, (positions.current[key] ?? 0) - 12), animated: true });
+    },
   };
 }
 
@@ -43,32 +91,47 @@ export function MeetupFields({
   spots,
   value,
   onChange,
+  hint = null,
+  onLayout,
 }: {
   spots: { id: string; name: string }[];
   value: Meetup;
   onChange: (next: Meetup) => void;
+  // The step to explain, after a press on a send button that named it.
+  hint?: MeetupStep | null;
+  onLayout?: (step: MeetupStep) => (e: LayoutChangeEvent) => void;
 }) {
   const set = (changes: Partial<Meetup>) => onChange({ ...value, ...changes });
-  const now = new Date();
-  // Today offers only times at least 15 minutes ahead.
-  const times = TIMES.filter((m) => value.day !== 0 || m > now.getHours() * 60 + now.getMinutes() + 15);
+  const times = value.day === null ? [] : timesFor(value.day);
   return (
     <>
-      <Section label="When">
+      <Section label="Day" hint={hint === "day" ? MEETUP_STEPS.day[1] : null} onLayout={onLayout?.("day")}>
         <ChipRow>
           {Array.from({ length: 7 }, (_, offset) => (
             <Chip
               key={offset}
               label={dayLabel(offset)}
               selected={value.day === offset}
-              onPress={() => set({ day: offset, time: null })}
+              // The chosen time stays when the new day still offers it.
+              onPress={() =>
+                set({
+                  day: offset,
+                  time: value.time !== null && timesFor(offset).includes(value.time) ? value.time : null,
+                })
+              }
             />
           ))}
         </ChipRow>
-        {value.day !== null && !times.length ? (
-          <Text className="text-[13px] text-muted">No meetup times left today. Pick another day.</Text>
-        ) : null}
-        {value.day !== null && times.length ? (
+      </Section>
+
+      <Section
+        label="Time"
+        hint={hint === "time" ? MEETUP_STEPS.time[1] : null}
+        onLayout={onLayout?.("time")}
+      >
+        {value.day === null ? (
+          <Text className="text-[13px] text-muted">Pick a day first.</Text>
+        ) : times.length ? (
           <ChipRow>
             {times.map((m) => (
               <Chip
@@ -79,10 +142,16 @@ export function MeetupFields({
               />
             ))}
           </ChipRow>
-        ) : null}
+        ) : (
+          <Text className="text-[13px] text-muted">No meetup times left today. Pick another day.</Text>
+        )}
       </Section>
 
-      <Section label="Where">
+      <Section
+        label="Where"
+        hint={hint === "place" ? MEETUP_STEPS.place[1] : null}
+        onLayout={onLayout?.("place")}
+      >
         {spots.length ? (
           <View className="flex-row flex-wrap gap-2">
             {spots.map((s) => (
@@ -107,10 +176,22 @@ export function MeetupFields({
   );
 }
 
-export function Section({ label, children }: { label: string; children: ReactNode }) {
+export function Section({
+  label,
+  hint = null,
+  onLayout,
+  children,
+}: {
+  label: string;
+  // What to do here, shown in the warning color after a send button pointed at this step.
+  hint?: string | null;
+  onLayout?: (e: LayoutChangeEvent) => void;
+  children: ReactNode;
+}) {
   return (
-    <View className="gap-2">
+    <View className="gap-2" onLayout={onLayout}>
       <Text className="text-sm font-bold text-ink">{label}</Text>
+      {hint ? <Text className="text-[13px] font-bold text-warning">{hint}</Text> : null}
       {children}
     </View>
   );

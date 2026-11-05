@@ -395,9 +395,12 @@ inspector_port = 8083
 # The Deno major version to use.
 deno_version = 2
 
-# media-purge's shared secret for local development; seed.sql puts the same value in Vault.
+# media-purge's shared secret for local development; seed.sql puts the same value in Vault. The review
+# account's sign-in (review-sign-in) for local development; staging and production set their own.
 [edge_runtime.secrets]
 MEDIA_PURGE_SECRET = "local-development-only"
+REVIEW_EMAIL = "review@campusmarket.trade"
+REVIEW_CODE = "000000"
 
 # daily-maintenance calls media-purge with the shared secret instead of a user's JWT.
 [functions.media-purge]
@@ -405,6 +408,10 @@ verify_jwt = false
 
 # Share links open for anyone, signed in or not, on the web or in the app.
 [functions.listing-preview]
+verify_jwt = false
+
+# Store reviewers call it before they have a session.
+[functions.review-sign-in]
 verify_jwt = false
 
 [analytics]

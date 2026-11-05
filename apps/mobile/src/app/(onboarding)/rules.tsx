@@ -1,11 +1,11 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { Linking, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
 import { useAccount } from "@/features/account/account";
+import { TERMS_VERSION } from "@/features/legal/documents";
 import { errorMessage } from "@/lib/errors";
 import { supabase } from "@/lib/supabase";
-import { TERMS_URL, TERMS_VERSION } from "@/lib/terms";
 import { Button } from "@/ui/Button";
 import { Screen } from "@/ui/Screen";
 import { TextLink } from "@/ui/TextLink";
@@ -81,7 +81,11 @@ export default function RulesAndConsent() {
       </View>
       <TextLink
         label="Read the full Terms and Community Rules"
-        onPress={() => void Linking.openURL(TERMS_URL)}
+        onPress={() => router.push({ pathname: "/legal/[doc]", params: { doc: "terms" } })}
+      />
+      <TextLink
+        label="Read the Privacy Policy"
+        onPress={() => router.push({ pathname: "/legal/[doc]", params: { doc: "privacy" } })}
       />
       <Toggle label="I agree to the Terms and Community Rules" value={agreed} onChange={setAgreed} />
       <Toggle

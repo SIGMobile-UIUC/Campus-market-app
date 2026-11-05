@@ -60,6 +60,20 @@ cd apps/web
 npx wrangler@4.151.1 pages dev public --binding SUPABASE_URL=https://<project-ref>.supabase.co
 ```
 
+## Terms and privacy
+
+The Terms and the Privacy Policy live in `apps/mobile/src/features/legal/documents.ts`. The app shows them on its own screens, and `apps/web` serves the same text at `campusmarket.trade/terms` and `/privacy`, the addresses the app stores ask for. Bump `TERMS_VERSION` for a material change.
+
+## Store review account
+
+App Store and Google Play reviewers cannot read our sign-in emails, so one review account signs in with a fixed code through the `review-sign-in` Edge Function. Set it up once per backend:
+
+1. Set the `REVIEW_EMAIL` and `REVIEW_CODE` (6 digits) secrets on the Supabase project. Staging keeps its values in `supabase/.env.staging.local`.
+2. Create the user for `REVIEW_EMAIL` in the Supabase dashboard (Authentication, Add user, auto-confirm), finish onboarding with it, and place it in the demo campus so reviewers see a campus market.
+3. Give the reviewers that email and code in the review notes. They type the email, then the code on the code screen.
+
+Unset the secrets after review; the function then refuses every request.
+
 ## Checks
 
 Pull requests run these in CI; run them before you push:

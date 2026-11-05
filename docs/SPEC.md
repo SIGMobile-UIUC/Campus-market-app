@@ -265,6 +265,7 @@ A listing contains one or more **items**, the units that are sold. See the [Glos
 | CHT-6 | Safety warnings | P0 | Safety tips before the first chat. A warning when a message asks for a verification code, a gift card or payment before meeting. |
 | CHT-7 | Leave a chat | P0 | Either side can leave a chat unless a trade in it is proposed, accepted or disputed. The chat disappears from the leaver's list, and the other side sees "left the chat" and can no longer send messages. Contacting the same person about the same listing later starts a new chat. |
 | CHT-8 | Chat retention | P0 | When both sides have left, the chat's messages and photos are deleted 7 days later. Chat photos are deleted 1 year after the chat's last message; the text stays and the photo shows as expired. Deletion waits while a report on the chat or a dispute on its trade is open. |
+| CHT-9 | Coin flip | P1 | Either side proposes a coin flip in the chat; the other side calls heads or tails, and the server picks the result at random and posts it. One open flip per chat; the proposer can cancel it before the call. A convenience for small choices, never for wagers. |
 
 #### 1.6.6 Trades
 
@@ -273,7 +274,7 @@ A **trade** is an agreement between one seller and one buyer for one or more ite
 | ID | Requirement | Priority | Acceptance criteria |
 | --- | --- | --- | --- |
 | TRD-1 | Propose a trade | P0 | Either side proposes from the chat: items (any available items of the listing), total price, a time, and a meetup spot or place. For wanted listings, the responding seller describes the offered item and price. Proposals expire after 48 hours. |
-| TRD-2 | Accept, decline, withdraw | P0 | The other side accepts or declines; the proposer can withdraw before acceptance. |
+| TRD-2 | Accept, decline, withdraw, counter | P0 | The other side accepts, declines, or counters with different terms, which declines the proposal and proposes the new terms in one step; the proposer can withdraw before acceptance. |
 | TRD-3 | Reservation | P0 | Acceptance reserves the items. Other buyers see them as Reserved. If any item is no longer available at acceptance, the acceptance fails and nothing is reserved. |
 | TRD-4 | Complete a meetup trade | P0 | Both sides tap "Completed". If one side confirmed and the other neither confirmed nor opened a dispute within 72 hours after the meetup time, the trade completes automatically. If neither confirms within 7 days, it expires and items return to available. |
 | TRD-5 | Shipping trade | After the MVP | Escrow-backed shipping, described in [Part 7](#71-escrow-and-shipping). |
@@ -740,7 +741,7 @@ Expo Router groups: `(auth)` for welcome, email and code (signed out), `(onboard
 | | Email and code | Email field (rejects `+` and disposable addresses with a hint), 6-digit code with auto-fill, resend timer | P0 |
 | | Campus reveal | Campus name and colors animate in; waitlist students see "Open market" and their school's waitlist count; general users see "Open market" and set their ZIP code; shows the signed-in email with "Use a different email" | P0 |
 | | Profile setup | Nickname (live availability check), starter avatar picked from six looks | P0 |
-| | Rules and consent | Community rules summary, link to the full Terms (`docs/TERMS.md`), terms acceptance, analytics and personalized-ads switches (both on by default, each can be turned off here or in Settings) | P0 |
+| | Rules and consent | Community rules summary, links to the full Terms and the Privacy Policy (in-app screens, also at campusmarket.trade/terms and /privacy), terms acceptance, analytics and personalized-ads switches (both on by default, each can be turned off here or in Settings) | P0 |
 | Home | Home | Header with campus name and market toggle (hidden for waitlist students and general users), notification bell, search bar, shopping mode tiles, Picked for you, Shop by category grid, Move-out sales near you, Students are looking for, Hot this week grid (DSC-11, DSC-12) | P0 |
 | Browse | Categories | Category list on the left, subcategories with counts on the right, popular searches for the campus | P0 |
 | | Category results | Subcategory tabs, filter chips (market, price, condition, pickup zone, free only), result count, sort, "Alert me" (P2), two-column grid | P0 |
@@ -758,8 +759,8 @@ Expo Router groups: `(auth)` for welcome, email and code (signed out), `(onboard
 | | Bundle items | Add, reorder and price items; photos per item | P0 |
 | | Preview and post | Card as buyers will see it | P0 |
 | Chats | Chat list | Listing thumbnail, partner nickname and grade, last message, unread badge, active-trade chip; swipe or "..." to leave | P0 |
-| | Chat room | Listing header, bubbles, quick replies, photo button, safety banner, trade cards; "Leave chat" in the "..." menu with a confirmation that explains the 7-day deletion | P0 |
-| Trades | Proposal sheet | Items to include (bundles), total price, meetup time (the next 7 days, on the half hour from 8 AM to 9:30 PM) and spot (map of campus spots) or a typed place | P0 |
+| | Chat room | Listing header, bubbles, quick replies (with "Flip a coin"), photo button, safety banner, trade cards and coin flip cards; "Leave chat" in the "..." menu with a confirmation that explains the 7-day deletion | P0 |
+| Trades | Proposal sheet | Items to include (bundles), total price, meetup day and time (the next 7 days, on the half hour from 8 AM to 9:30 PM) and spot (map of campus spots) or a typed place, prefilled with the listing's meetup place. Until everything is filled, the send button names the next missing step and, when pressed, scrolls to it and says what to do. A counter offer opens it with the proposal's terms | P0 |
 | | Trade details | Status timeline, items and price, meetup time and spot with "I'm here" (P1), Confirm, Cancel, Report a problem | P0 |
 | | My trades | Active, Completed, Closed tabs | P0 |
 | Disputes | Open dispute | Type, statement, evidence photos from the in-app camera | P0 |
@@ -2184,6 +2185,18 @@ create table public.chat_reads (
   left_at       timestamptz,
   primary key (chat_id, user_id)
 );
+
+-- Coin flips (CHT-9); one open flip per chat. Read through the chat's system messages only.
+create table public.coin_flips (
+  id          uuid primary key default gen_random_uuid(),
+  chat_id     uuid not null references public.chats on delete cascade,
+  proposed_by uuid not null references public.profiles,
+  status      text not null default 'proposed',   -- proposed, flipped, cancelled
+  call        text,                                -- heads or tails, by the side that did not propose
+  result      text,                                -- picked by the server
+  created_at  timestamptz not null default now(),
+  flipped_at  timestamptz
+);
 ```
 
 #### 5.3.6 Trades
@@ -2815,10 +2828,13 @@ Favorites use the `favorites` table directly (insert or delete own rows). Seller
 | `get_messages(chat_id, after_seq, before_seq, limit)` (invoker) | uuid, bigint, bigint, int (default 50, max 100) | messages ordered by `seq`: the oldest after `after_seq` (gap fill), otherwise the latest before `before_seq` (history) | `NOT_FOUND` |
 | `mark_read(chat_id, seq)` | uuid, bigint | `{ last_read_seq }` | `NOT_PARTY` |
 | `set_chat_muted(chat_id, muted)` | uuid, bool | none | `NOT_PARTY` |
+| `propose_coin_flip(chat_id)` | uuid | flip id (the open one if the chat has one) | `NOT_PARTY`, `INVALID_STATE` (chat closed), `BLOCKED` |
+| `call_coin_flip(flip_id, call)` | uuid, `heads` or `tails` | the result | `NOT_PARTY`, `INVALID_STATE` (own flip, already called or cancelled, chat closed), `VALIDATION_FAILED` |
+| `cancel_coin_flip(flip_id)` | uuid | none | `NOT_PARTY`, `INVALID_STATE` (not the proposer or no longer open) |
 | `unread_summary()` (invoker) | none | `{ total, chats[{chat_id, unread}] }` | |
 | `my_chats()` (invoker) | none | open chats the caller has not left and that have a message, newest first: `chat_id`, `listing` (title, kind, status, cover thumbnail), `partner` (nickname, grade, student or not), `last_message`, `unread`, `muted`, `active_trade` | |
 
-`send_message` also sets the sender's `last_read_seq` to the new `seq`. Photo messages are uploaded first to the private `chat-images` bucket under `{chat_id}/{user_id}/`; both parties can read them.
+Each coin flip step posts a system message whose `meta` carries the whole state (`event: coin_flip`, `flip_id`, `status`, `user_id`, and once flipped `call` and `result`), so the chat shows flips without another query; `coin_flips` keeps the authoritative state and is not readable through the API. `send_message` also sets the sender's `last_read_seq` to the new `seq`. Photo messages are uploaded first to the private `chat-images` bucket under `{chat_id}/{user_id}/`; both parties can read them.
 
 ### 6.6 Trades
 
@@ -2827,6 +2843,7 @@ Favorites use the `favorites` table directly (insert or delete own rows). Seller
 | `propose_trade(chat_id, proposal, request_id)` | uuid; jsonb: `role` (`seller` or `buyer`, from the caller's side), `item_ids[]` or `offer_items[{name, price_cents}]` (wanted listings), `total_cents`, `meet_at`, `spot_id`, `place_text`; uuid | trade | `NOT_PARTY`, `INVALID_STATE` (chat or listing closed), `ITEM_UNAVAILABLE`, `VALIDATION_FAILED` (no future time, no spot of the listing's campus or typed place), `PROHIBITED_CONTENT`, `BLOCKED`, `RESTRICTED` |
 | `accept_trade(trade_id)` | uuid | trade with items reserved | `NOT_PARTY`, `INVALID_STATE` (own proposal, older than 48 hours, or listing closed), `ITEM_UNAVAILABLE` (nothing reserved) |
 | `decline_trade(trade_id)` | uuid | trade | `NOT_PARTY`, `INVALID_STATE` |
+| `counter_trade(trade_id, proposal, request_id)` | uuid; jsonb as in `propose_trade`; uuid | the new trade, after `decline_trade(trade_id)` in the same transaction; a retry returns it | as `decline_trade` and `propose_trade` |
 | `withdraw_trade(trade_id)` | uuid | trade | `FORBIDDEN` (not the proposer), `INVALID_STATE` |
 | `cancel_trade(trade_id, reason)` | uuid, text (1 to 500 characters) | `{ trade, late_cancel_penalty }` | `NOT_PARTY`, `INVALID_STATE`, `VALIDATION_FAILED` |
 | `confirm_trade(trade_id)` | uuid | `{ trade, completed, points_awarded }` | `NOT_PARTY`, `INVALID_STATE`, `WINDOW_CLOSED` (before 30 minutes ahead of `meet_at` or after 7 days past it) |
@@ -2893,6 +2910,7 @@ Every admin function writes `private.admin_log` and checks the caller's role and
 | `verify-secondary-code` | App (JWT) | `{ code }` | 204; 400 on a wrong or expired code |
 | `delete-account` | App (JWT) | `{ code }` (a fresh school-email code) | 204; 400 on a wrong or expired code; 409 if the user has an open dispute as respondent |
 | `listing-preview` | Share-link web page and app, no JWT | `GET ?code=<share_code>` | `listing_preview` (public fields only: no seller, meetup place or moderation fields) with photo URLs signed for an hour; 404 for a deleted or hidden listing |
+| `review-sign-in` | App, no JWT, after a sign-in code fails | `{ email, code }` | `{ token }`: a fresh one-time code for the store review account when `email` and `code` match the `REVIEW_EMAIL` and `REVIEW_CODE` secrets; 404 otherwise, and always once the secrets are unset after review |
 
 Push sending and receipts run in the database (section 4.16); devices register with `register_push_token(token, platform)` and `unregister_push_token(token)` (section 6.3). Push payloads never include message text when the recipient has `lock_screen_preview` off.
 

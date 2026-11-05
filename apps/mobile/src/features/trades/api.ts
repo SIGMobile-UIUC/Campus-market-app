@@ -26,6 +26,7 @@ export type Trade = {
   status: TradeStatus;
   total_cents: number;
   meet_at: string;
+  spot_id: string | null;
   place_text: string | null;
   proposed_at: string;
   accepted_at: string | null;
@@ -44,7 +45,7 @@ export type Trade = {
 };
 
 const TRADE_SELECT = `id, listing_id, chat_id, seller_id, buyer_id, proposed_by, status, total_cents, meet_at,
-  place_text, proposed_at, accepted_at, completed_at, closed_at, cancelled_by, cancel_reason,
+  spot_id, place_text, proposed_at, accepted_at, completed_at, closed_at, cancelled_by, cancel_reason,
   items:trade_items(line, item_id, name, price_cents), trade_confirmations(user_id), spot:meetup_spots(name, lat, lng),
   listing:listings!trades_listing_id_fkey(title), seller:profiles!trades_seller_id_fkey(display_name, tier),
   buyer:profiles!trades_buyer_id_fkey(display_name, tier), reviews(reviewer_id)`;
@@ -108,6 +109,15 @@ export async function tradeAction<T = unknown>(fn: string, args: Record<string, 
 export function proposeTrade(chatId: string, proposal: Record<string, unknown>, requestId: string) {
   return tradeAction<Trade>("propose_trade", {
     p_chat_id: chatId,
+    p_proposal: proposal,
+    p_request_id: requestId,
+  });
+}
+
+// Declines the trade and proposes new terms in its chat (TRD-2).
+export function counterTrade(tradeId: string, proposal: Record<string, unknown>, requestId: string) {
+  return tradeAction<Trade>("counter_trade", {
+    p_trade_id: tradeId,
     p_proposal: proposal,
     p_request_id: requestId,
   });

@@ -113,18 +113,35 @@ export function TradeActions({
         <TextLink label="Withdraw" onPress={() => void run("withdraw_trade")} />
       </View>
     ) : (
-      <View className="flex-row gap-2 pt-1">
-        <View className="flex-1">
-          <Button
-            variant="secondary"
-            label="Decline"
-            disabled={busy}
-            onPress={() => void run("decline_trade")}
-          />
+      <View className="gap-2 pt-1">
+        <View className="flex-row gap-2">
+          <View className="flex-1">
+            <Button
+              variant="secondary"
+              label="Decline"
+              disabled={busy}
+              onPress={() => void run("decline_trade")}
+            />
+          </View>
+          <View className="flex-1">
+            <Button label="Accept" disabled={busy} onPress={() => void run("accept_trade")} />
+          </View>
         </View>
-        <View className="flex-1">
-          <Button label="Accept" disabled={busy} onPress={() => void run("accept_trade")} />
-        </View>
+        {/* A counter offer starts from these terms (TRD-2); offers on wanted requests are answered
+            with a new offer instead. */}
+        {trade.items.some((i) => i.item_id) ? (
+          <View className="items-center">
+            <TextLink
+              label="Counter with different terms"
+              onPress={() =>
+                router.push({
+                  pathname: "/propose/[chatId]",
+                  params: { chatId: trade.chat_id, counter: trade.id },
+                })
+              }
+            />
+          </View>
+        ) : null}
       </View>
     );
   }

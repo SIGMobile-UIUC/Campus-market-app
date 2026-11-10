@@ -11,11 +11,13 @@ select vault.create_secret('local-development-only', 'media_purge_secret');
 insert into public.campuses (slug, name, short_name, status, timezone, lat, lng, primary_color, accent_color) values
   ('illinois', 'University of Illinois Urbana-Champaign', 'UIUC',     'live',     'America/Chicago',              40.1020, -88.2272, '#13294B', '#FF5F05'),
   ('purdue',   'Purdue University',                       'Purdue',   'live',     'America/Indiana/Indianapolis', 40.4237, -86.9212, '#000000', '#CFB991'),
+  ('wisconsin', 'University of Wisconsin-Madison',        'UW-Madison', 'live',   'America/Chicago',              43.0766, -89.4125, '#282728', '#C5050C'),
   ('michigan', 'University of Michigan',                  'Michigan', 'waitlist', 'America/Detroit',              42.2780, -83.7382, '#00274C', '#FFCB05');
 
 insert into public.campus_domains (domain, campus_id, include_subdomains)
 select d.domain, c.id, true
-from (values ('illinois.edu', 'illinois'), ('purdue.edu', 'purdue'), ('umich.edu', 'michigan')) as d(domain, slug)
+from (values ('illinois.edu', 'illinois'), ('uiuc.edu', 'illinois'), ('purdue.edu', 'purdue'), ('wisc.edu', 'wisconsin'),
+             ('umich.edu', 'michigan')) as d(domain, slug)
 join public.campuses c on c.slug = d.slug;
 
 -- Pickup zones and public meetup spots (CMP-2). Coordinates are approximate; check them on a map
@@ -31,7 +33,12 @@ from (values
   ('purdue', 'Memorial Mall', 1),
   ('purdue', 'State Street', 2),
   ('purdue', 'Northwest halls', 3),
-  ('purdue', 'Southwest halls', 4)
+  ('purdue', 'Southwest halls', 4),
+  ('wisconsin', 'Bascom Hill', 1),
+  ('wisconsin', 'Library Mall', 2),
+  ('wisconsin', 'Engineering campus', 3),
+  ('wisconsin', 'Lakeshore halls', 4),
+  ('wisconsin', 'Southeast halls', 5)
 ) as z(slug, name, sort_order)
 join public.campuses c on c.slug = z.slug;
 
@@ -52,7 +59,15 @@ from (values
   ('purdue',   'State Street',         'Chauncey Square',               40.4237, -86.9071),
   ('purdue',   'Northwest halls',      'Córdova Recreational Sports Center', 40.4285, -86.9223),
   ('purdue',   'Northwest halls',      'Wiley Dining Court',            40.4282, -86.9208),
-  ('purdue',   'Southwest halls',      'Hillenbrand Dining Court',      40.4269, -86.9268)
+  ('purdue',   'Southwest halls',      'Hillenbrand Dining Court',      40.4269, -86.9268),
+  ('wisconsin', 'Bascom Hill',         'Bascom Hall, Lincoln statue',   43.0753, -89.4040),
+  ('wisconsin', 'Library Mall',        'Memorial Union',                43.0762, -89.3999),
+  ('wisconsin', 'Library Mall',        'College Library',               43.0768, -89.4012),
+  ('wisconsin', 'Library Mall',        'Memorial Library',              43.0752, -89.3982),
+  ('wisconsin', 'Engineering campus',  'Union South',                   43.0717, -89.4079),
+  ('wisconsin', 'Engineering campus',  'Wendt Commons',                 43.0727, -89.4102),
+  ('wisconsin', 'Lakeshore halls',     'Four Lakes Market, Dejope Hall', 43.0776, -89.4178),
+  ('wisconsin', 'Southeast halls',     'Gordon Dining and Event Center', 43.0711, -89.3983)
 ) as s(slug, zone, name, lat, lng)
 join public.campuses c on c.slug = s.slug
 join public.campus_zones z on z.campus_id = c.id and z.name = s.zone;

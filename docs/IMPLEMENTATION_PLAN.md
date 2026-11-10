@@ -81,7 +81,7 @@ Done when: a fresh clone runs the app in under 15 minutes by following the READM
 | DB-2 | `profiles`, `private.accounts`, `user_roles`, `user_settings`, `consents`; profile creation on email confirmation; `get_my_account`, `complete_onboarding` | Backend | Done; starter avatar joins with DB-12 |
 | DB-3 | Before User Created hook: plus addresses, disposable domains, tombstones; Resend as the auth SMTP on staging | Backend | Done; mail reaches only the Resend account's own address until the sending domain is verified |
 | DB-4 | RLS on every table, function security lint, pgTAP harness with the RLS matrix users (same campus, other campus, waitlist, general, suspended, banned) | Backend | Done; CI runs lint and pgTAP |
-| DB-5 | Seed: two live campuses (Illinois, Purdue) and one waitlist campus (Michigan), categories from spec 1.7.5, rule values | Backend | Done; ZIP codes (all US), categories and rule values in migrations; zone and spot coordinates need a map check |
+| DB-5 | Seed: three live campuses (Illinois, Purdue, UW-Madison) and one waitlist campus (Michigan), categories from spec 1.7.5, rule values | Backend | Done; ZIP codes (all US), categories and rule values in migrations; zone and spot coordinates need a map check |
 | APP-3 | Onboarding: email, 6-digit code, campus reveal, ZIP for general users, nickname and avatar, rules and consent; session in SecureStore | App | Done, including the starter avatar |
 | APP-4 | Home header with campus name and market toggle; theme switches with the campus | App | Done |
 
@@ -192,5 +192,5 @@ Backend leads app by about one week: each app task starts once its functions exi
 | Decision | Default if nobody objects |
 | --- | --- |
 | Team members, roles and demo date | Owners assigned per area: Platform, Backend, App (1 to 2 people) |
-| Demo campuses | Illinois and Purdue live, Michigan waitlist |
+| Demo campuses | Illinois, Purdue and UW-Madison live, Michigan waitlist |
 | Who owns the Supabase org, Expo account, Apple account and sending domain | The project lead's accounts, shared with the team |

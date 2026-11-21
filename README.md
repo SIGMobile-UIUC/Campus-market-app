@@ -40,14 +40,9 @@ Press `a` for the emulator, or scan the QR code with your phone. Sign in with an
 
 Testers install a standalone Android APK that talks to the staging backend, so it needs neither Metro nor a local backend. EAS takes the staging URL and publishable key from the project's `preview` environment variables on Expo.
 
-```bash
-cd apps/mobile
-npx eas-cli build --profile preview --platform android
-```
+After a merge, run the **Android preview** workflow on `main` from the Actions tab. It builds the APK in EAS and attaches it to a new GitHub release, since EAS deletes free-plan builds after 14 days. `campusmarket.trade/app` links to the latest release, so share that link. The workflow needs the `EXPO_TOKEN` repository secret.
 
-Share the install link it prints. The APK uses the same package name as the development build, so installing one replaces the other on a device. iOS builds wait for an Apple Developer account.
-
-After each build, point `ANDROID` in `apps/web/functions/app.ts` at the new APK so `campusmarket.trade/app` always installs the latest one.
+The APK uses the same package name as the development build, so installing one replaces the other on a device. iOS builds wait for an Apple Developer account.
 
 ## Share links
 

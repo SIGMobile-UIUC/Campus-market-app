@@ -1,0 +1,36 @@
+name: Android preview
+
+# Run from the Actions tab on main after a merge. EAS builds the preview APK on the staging backend, and the
+# APK goes to a GitHub release, because EAS deletes free-plan builds after 14 days. campusmarket.trade/app
+# links to the latest release, so it always installs the newest build.
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency: android-preview
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: apps/mobile
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/mobile/package-lock.json
+      - run: npm ci
+      - run: npx -y eas-cli@27.4.1 build --profile preview --platform android --non-interactive --wait --json > "$RUNNER_TEMP/build.json"
+      - run: curl -fsSL -o "$RUNNER_TEMP/campus-market.apk" "$(jq -r '.[0].artifacts.buildUrl' "$RUNNER_TEMP/build.json")"
+      - run: |
+          version=$(jq -r '.[0].appBuildVersion' "$RUNNER_TEMP/build.json")
+          gh release create "android-preview-$version" "$RUNNER_TEMP/campus-market.apk" \
+            --target "$GITHUB_SHA" --title "Android preview $version" \
+            --notes "Preview APK on the staging backend, built from $GITHUB_SHA. Install it from https://campusmarket.trade/app."

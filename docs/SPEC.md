@@ -199,7 +199,7 @@ Priority: **P0** is required for the MVP demo, **P1** for the public beta, **P2*
 | ACC-5 | Sessions and graduation | P1 | No separate re-verification. Sessions end after 180 days, or after 90 days without use, and signing back in needs a code sent to the sign-in email. A graduate whose school email has closed loses the campus market and can join the open market with a personal email. Needs the Pro plan's session settings, so it starts with the beta. |
 | ACC-6 | Secondary email | P1 | An optional personal email, verified by code, receives account notices (dispute results, enforcement actions, policy changes). It can never be used to sign in. |
 | ACC-7 | Account status page | P0 | Shows penalty points with expiry dates and enforcement actions with reasons and end dates. Appeal buttons arrive with appeals (P1). |
-| ACC-8 | Account deletion inside the app | P0 | Code confirmation, then personal data removal. Other users see "Deleted user". A banned email can never sign up again; from P1, an account deleted with active penalties cannot be re-created for the period in [Policies](#28-enforcement). |
+| ACC-8 | Account deletion inside the app | P0 | Code confirmation, then personal data removal; the same on campusmarket.trade/delete-account for people without the app. Other users see "Deleted user". A banned email can never sign up again; from P1, an account deleted with active penalties cannot be re-created for the period in [Policies](#28-enforcement). |
 | ACC-9 | Notification settings | P1 | On or off per type: chats, trade updates, disputes, favorites, alerts, announcements. Lock-screen message previews can be hidden. |
 | ACC-10 | Invite classmates | P2 | The inviter earns points after the invitee completes a first trade. |
 
@@ -1754,6 +1754,7 @@ Campus separation and points are the failures that cannot be patched after the f
 | Apple 1.1.4: no overtly sexual material | Adult items and explicit images prohibited (section 2.2) |
 | Apple 1.2: filtering, reporting, blocking, published contact information, timely responses | SAF-1 to SAF-6, contact address in Settings, 24-hour moderation target |
 | Apple 5.1.1(v): account deletion in the app | ACC-8, `delete-account` |
+| Google Play: account deletion requested on the web | campusmarket.trade/delete-account: a code to the sign-in email, then `delete-account` |
 | Location permission purpose | GPS check-in only on tap, with a purpose string naming dispute evidence |
 | Privacy labels and Google Play Data safety | Section 4.17 and [Policies](#212-data-retention) |
 | App Tracking Transparency | Not required: no data is linked with other companies' apps or sites for advertising |

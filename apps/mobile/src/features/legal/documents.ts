@@ -148,7 +148,7 @@ We do not sell your personal data.
 
 - Turn usage data and personalized deals on or off anytime in Settings.
 - Turn notifications on or off in your phone's settings.
-- Delete your account anytime in Settings. Your personal data is then removed; trades, reviews and messages you took part in remain and show "Deleted user".
+- Delete your account anytime in Settings, or without the app at campusmarket.trade/delete-account. Your personal data is then removed; trades, reviews and messages you took part in remain and show "Deleted user".
 - Ask us for a copy or a correction of your data at the contact address above.
 
 ## 6. Children

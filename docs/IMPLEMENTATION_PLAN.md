@@ -148,6 +148,7 @@ Done when: after a completed trade both users see their new points and, once the
 | INF-5 | Merge to `main` applies migrations to staging; preview builds for testers | Platform | Done for Android: the `staging` job applies migrations and deploys Edge Functions; the Android preview workflow builds the `preview` APK on staging and attaches it to a GitHub release, which `campusmarket.trade/app` links to. iOS waits for the Apple account |
 | APP-23 | Share links and QR codes (LST-11): `share_code`, `listing_preview` and the `listing-preview` Edge Function; the web preview on Cloudflare Pages (`campusmarket.trade`); share button, QR and shared preview in the app | All | Done for Android, with the app ID now `trade.campusmarket.app` and the new icon; iOS universal links wait for the Apple account |
 | APP-24 | Trade chat and store readiness: the proposal and offer sheets name the next missing step and scroll to it; counter offers (TRD-2); coin flips in chat (CHT-9); the Terms and a Privacy Policy in the app and at campusmarket.trade/terms and /privacy; a store review account (`review-sign-in`) | All | Done on Android; the review account is set up on staging |
+| APP-25 | Account deletion on the web for Google Play: campusmarket.trade/delete-account sends a code to the sign-in email, then `delete-account` deletes the account as in the app | All | Done |
 | QA-1 | Real-device pass on iOS and Android, demo seed data, demo script rehearsed twice | All | |
 
 Feature freeze: Monday, Nov 30. Week 10 is for fixes and the demo only.

@@ -46,13 +46,13 @@ The APK uses the same package name as the development build, so installing one r
 
 ## Share links
 
-`campusmarket.trade/l/<share_code>` opens a listing in the app, or a web preview for people without it (spec LST-11). The site lives in `apps/web` on Cloudflare Pages: `functions/l/[code].ts` renders the `listing-preview` Edge Function, `functions/app.ts` sends `/app` to the latest Android or iOS build, and `public/` holds the home page and the Android App Links file. Pushes to `main` deploy it after staging.
+`campusmarket.trade/l/<share_code>` opens a listing in the app, or a web preview for people without it (spec LST-11). The site lives in `apps/web` on Cloudflare Pages: `functions/l/[code].ts` renders the `listing-preview` Edge Function, `functions/app.ts` sends `/app` to the latest Android or iOS build, `functions/delete-account.ts` deletes an account without the app (Google Play requires it), and `public/` holds the home page and the Android App Links file. Pushes to `main` deploy it after staging.
 
-To run it against staging, with `SUPABASE_URL` from `supabase/.env.staging.local`:
+The Pages project sets `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`. To run it against staging, with both from `supabase/.env.staging.local`:
 
 ```bash
 cd apps/web
-npx wrangler@4.151.1 pages dev public --binding SUPABASE_URL=https://<project-ref>.supabase.co
+npx wrangler@4.151.1 pages dev public --binding SUPABASE_URL=https://<project-ref>.supabase.co --binding SUPABASE_PUBLISHABLE_KEY=<key>
 ```
 
 ## Terms and privacy

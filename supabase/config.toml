@@ -414,6 +414,10 @@ verify_jwt = false
 [functions.review-sign-in]
 verify_jwt = false
 
+# The web deletion page has no session; the function checks the code itself.
+[functions.delete-account]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

@@ -1,6 +1,7 @@
-// /app installs the latest build for the visitor's phone: the preview APK (INF-5), or the iOS link once
-// the Apple account exists. Point these at each new build.
-const ANDROID = "https://expo.dev/artifacts/eas/C_MkWLJ3WmQhbStwrUlTYI2L8-2qFvrTdn19oh4hocw.apk";
+// /app installs the latest build for the visitor's phone: the preview APK from the newest GitHub release
+// (INF-5, made by the Android preview workflow), or the iOS link once the Apple account exists.
+const ANDROID =
+  "https://github.com/SIGMobile-UIUC/Campus-market-app/releases/latest/download/campus-market.apk";
 const IOS = "";
 
 export function onRequest({ request }: { request: Request }) {

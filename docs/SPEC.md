@@ -344,7 +344,7 @@ A **trade** is an agreement between one seller and one buyer for one or more ite
 | INS-2 | Event logging | P0 | Behavior events modeled on GA4's e-commerce events (impressions, clicks, views, searches, filters, wishlists, shares, sell-flow steps, price edits; section 4.17.5), only from users who allow analytics. Outcomes such as trades and prices come from service records. Chat content, GPS, evidence and advertising identifiers are never logged. |
 | INS-3 | Internal trends dashboard | P1 | Campus-level totals for the team. |
 | INS-4 | External trend reports | P2 | Reports for partners that follow the external sharing rules in [Policies](#211-data-sharing). |
-| INS-5 | Sponsored deals | P2 | Ads matched to the category being browsed; interest targeting only with consent; restricted categories excluded. |
+| INS-5 | Ads | P2 | One labeled ad slot filled by self-serve local ads, or by Amazon and eBay affiliate products when no local ad fits; matched to the category or search being browsed; interest targeting only with consent; restricted categories excluded; no ad SDK (section 4.17.9). |
 | INS-6 | Surveys | P2 | Opt-in surveys and product tests that reward points. |
 
 #### 1.6.12 Notifications center
@@ -543,7 +543,7 @@ After the MVP the team may allow them as **sensitive** listings (blurred photo, 
 
 ### 2.4 Sponsored content
 
-Sponsored deals never promote adult products, alcohol, tobacco or vapes, cannabis, gambling, weapons, dating services or payday lending. Sponsored content is labeled "Sponsored".
+Sponsored deals never promote adult products, alcohol, tobacco or vapes, cannabis, gambling, weapons, dating services or payday lending, and affiliate products follow the listing rules in section 2.2 as well. Sponsored content is labeled "Sponsored"; affiliate products also name their store, and the Terms and the Privacy Policy say that Campus Market earns a commission on them before the first one is shown.
 
 ### 2.5 Points
 
@@ -1510,7 +1510,7 @@ Goal G5 is anonymous, campus-level trend data that funds the product without sel
 | Growth | Team | MVP | Which share links, invites and notifications bring people back | Session sources, share and push-open events |
 | Ranking and search quality | Team | P1 | Click-through by position, zero-result searches, exposure of new listings, which filters matter | List impressions, clicks, searches, filters |
 | Campus trend reports | Partners: retailers, brands, campus businesses | P2 | Demand by category and price, demand against supply, listed and sold prices, price cuts, time to sell, seasonal peaks such as move-in and move-out | Aggregates of events and records |
-| Sponsored deals | Advertisers | P2 | Which category a deal fits; how many people saw and tapped it | The category being browsed (no personal data); promotion events; interest categories only with ads consent |
+| Ads | Advertisers | P2 | Which category or search an ad fits; how many people saw and tapped it; what it cost | The category or search being browsed (no personal data); counts from the `ads` and `ad-click` functions; interest categories only with ads consent |
 | Surveys | Partners | P2 | Student opinions on products | Survey responses rewarded with points, reported only as totals of 20 or more |
 
 #### 4.17.2 What other e-commerce apps collect
@@ -1590,12 +1590,14 @@ Names marked GA4 follow Google Analytics 4's recommended events.
 | --- | --- | --- | --- |
 | `safety_warning_shown` | A scam-pattern warning appears in a chat | pattern | Tuning warnings without reading chats |
 
-**Sponsored deals (P2)**
+**Ads (P2)**
 
 | Event | When | Props | Used for |
 | --- | --- | --- | --- |
-| `view_promotion` (GA4) | A sponsored deal is shown | deal_id, slot, category | Advertiser impressions |
-| `select_promotion` (GA4) | A sponsored deal is tapped | deal_id | Advertiser click-through |
+| `view_promotion` (GA4) | An ad is shown | ad_id, source (local, amazon, ebay), slot, category | How ads affect browsing and liquidity |
+| `select_promotion` (GA4) | An ad is tapped | ad_id, source | Click-through by surface and position |
+
+Billing and advertiser reports do not use these events, which come only from users who allow analytics; they use the counts in section 4.17.9.
 
 From records rather than events (GA4 equivalents in brackets): sign-up and onboarding steps [`sign_up`] from `auth.users` and `profiles`, because consent is given at the end of onboarding; posted listings; trade proposals, acceptance and completion [`purchase`]; reviews; points earned and spent [`earn_virtual_currency`, `spend_virtual_currency`]; shop purchases; check-ins; reports and blocks.
 
@@ -1618,8 +1620,41 @@ From records rather than events (GA4 equivalents in brackets): sign-up and onboa
 #### 4.17.8 Business outputs (P2)
 
 - **Trend reports:** a report builder renders fixed templates from the aggregates under the rules in section 2.11: consenting users only, cells of at least 20 users, counts rounded to 5, campus and week granularity. Each release is reviewed and recorded in a sharing log with the recipient and contract reference.
-- **Sponsored deals:** a `sponsored_deals` table (campus, category, dates, creative). The feed shows a labeled deal slot matched to the category being browsed, which needs no personal data. Advertisers receive impression and tap totals only. Interest targeting uses `private.user_interests` (top categories from the last 30 days of views, wishlists and searches), computed nightly only for users who allow personalized ads; it never leaves the system.
+- **Ads:** see section 4.17.9.
 - **Surveys:** `surveys` and `survey_responses` tables. A completed survey awards points through `award_points`, and partners receive totals of at least 20 respondents.
+
+#### 4.17.9 Ads (P2)
+
+One ad slot, filled on the server from two sources in priority order. There is no ad SDK and no advertising identifier (AdMob and other ad networks are out), so principle 4 in section 4.17.3 holds and App Tracking Transparency stays unnecessary.
+
+| Priority | Source | Shown when | Revenue |
+| --- | --- | --- | --- |
+| 1 | Local ads that businesses buy themselves | The ad's campuses and its categories or keywords match what is being browsed | Per tap |
+| 2 | Affiliate products from Amazon Associates and eBay Partner Network | No local ad matches, and a search has fewer than 5 results or a listing has no similar listings | Commission on purchases |
+
+**Slot rules**
+
+- Surfaces: search results, category browse, the Home feed and a listing's similar listings. Never the first position: the first ad goes after the third result, then at most one in every 10. The slot stays empty when nothing relevant matches.
+- An ad has the shape of a listing card and the "Sponsored" label. An affiliate card also says "From Amazon" or "From eBay" and opens the store's page in the browser.
+- Matching is contextual: campus, category and search terms. Interest targeting uses `private.user_interests` (top categories from the last 30 days of views, wishlists and searches), computed nightly only for users who allow personalized ads; it never leaves the system.
+- The `ads` Edge Function picks the ad, so a source can be added or switched off without an app update. A tap goes through the `ad-click` function, which counts it and redirects to the destination.
+
+**Affiliate sources (prepared; switched on once the accounts exist)**
+
+- Each store is one adapter inside `ads`: search terms or a category in, up to 3 products out (title, image, price and a store link with our tracking tag). Results are cached per term for 24 hours, and no user data reaches the store.
+- Amazon needs an Associates account, which stays open only after 3 qualifying sales within 180 days, and its product API. eBay needs a Partner Network account and the Browse API. Their keys go in Edge Function secrets; an adapter without keys stays off.
+
+**Self-serve local ads, modeled on Karrot (Danggeun) ads**
+
+- Businesses buy on the web at campusmarket.trade/business, never in the app, so in-app purchase rules do not apply. They sign in with an email code, like users.
+- **Business profile:** name, category, address, logo and link. An admin approves it before its first ad.
+- **Ad:** image, title, one line of text, destination (website or phone), campuses, categories or keywords, dates and a daily budget. An admin checks each ad against section 2.4 before it runs.
+- **Price:** per tap, with second-price bidding as on Karrot: a tap costs the next-highest bid for the same slot plus $0.01, never more than the ad's own bid and never less than the $0.25 floor, so with a single advertiser every tap costs the floor. Taps by the same person on the same ad within 24 hours are charged once. The floor sits in Karrot's usual range of 100 to 500 won per tap.
+- **Modes:** simple mode first, where the business sets only dates and a daily budget and the ad bids the floor. Expert mode adds its own bid, per-1,000-impression pricing and keyword choice, once several businesses compete for the same campus.
+- **Billing:** a prepaid balance topped up through Stripe Checkout, $10 at least (Karrot's minimum is 10,000 won). Taps draw from the balance, and an ad stops for the day at its daily budget and stops entirely at a zero balance.
+- **Reports:** impressions, taps and spend per day, as totals.
+- **Counting:** impressions are counted when `ads` serves an ad and taps when `ad-click` receives them, for every viewer, so billing does not depend on analytics consent. The only per-person value is a daily hash of user and ad for the 24-hour rule.
+- **Data:** `advertisers` (business profile, status), `ads` (creative, targeting, dates, bid, daily budget, status), `ad_ledger` (top-ups and tap charges; the balance is their sum) and `ad_daily_stats` (impressions, taps and spend per ad and day). Only admins and the advertiser read them, through functions.
 
 ### 4.18 Concurrency and consistency
 
@@ -2636,7 +2671,7 @@ create table public.campus_weekly_terms (
 );
 ```
 
-Retention deletes by `received_at`, the server time, so a phone with a wrong clock cannot keep events past 12 months. Aggregate tables are readable only by admins and the read-only BI role. P2 adds `sponsored_deals`, `private.user_interests`, `surveys` and `survey_responses` (section 4.17.8), and the catalog gains `view_promotion` and `select_promotion`.
+Retention deletes by `received_at`, the server time, so a phone with a wrong clock cannot keep events past 12 months. Aggregate tables are readable only by admins and the read-only BI role. P2 adds `private.user_interests`, `surveys` and `survey_responses` (section 4.17.8) and the ads tables (section 4.17.9), and the catalog gains `view_promotion` and `select_promotion`.
 
 ### 5.4 Indexes
 
@@ -2998,5 +3033,5 @@ Escrow comes after the MVP, and shipping trades come with it: every shipped trad
 | SAF-1 to SAF-6 | 4.15 | reports, blocks, app_config | `report`, `block_user` | "..." menus, Moderation queue |
 | SAF-7 to SAF-9 | 4.15 | enforcement_actions, private.admin_log (appeals from P1) | admin functions | Case view, Account status |
 | INS-1 to INS-4 | 4.17 | consents, private.events, aggregates | `set_consent`, `log_events` | Rules and consent, Settings |
-| INS-5, INS-6 | 4.17.8 | sponsored_deals, private.user_interests, surveys, survey_responses | P2 | Feed deal slot, Surveys |
+| INS-5, INS-6 | 4.17.8, 4.17.9 | advertisers, ads, ad_ledger, ad_daily_stats, private.user_interests, surveys, survey_responses | `ads`, `ad-click`, P2 | Ad slot, campusmarket.trade/business, Surveys |
 | NTF-1 | 4.16 | notifications, push_tokens | `private.push` triggers, `register_push_token` | Notification center |
